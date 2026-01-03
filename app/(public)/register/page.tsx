@@ -2,27 +2,29 @@
 
 import Link from "next/link";
 import { useForm } from "@tanstack/react-form";
-import { useLogin } from "@/src/features/auth/hooks";
-import { loginSchema, type LoginFormData } from "@/src/lib/validations/auth";
+import { useRegister } from "@/src/features/auth/hooks";
+import { registerSchema, type RegisterFormData } from "@/src/lib/validations/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
-export default function LoginPage() {
-  const loginMutation = useLogin();
+export default function RegisterPage() {
+  const registerMutation = useRegister();
 
   const form = useForm({
     defaultValues: {
+      name: "",
       email: "",
       password: "",
-    } as LoginFormData,
+      confirmPassword: "",
+    } as RegisterFormData,
     validators: {
       onSubmit: ({ value }) => {
-        const result = loginSchema.safeParse(value);
+        const result = registerSchema.safeParse(value);
         if (!result.success) {
           result.error.issues.forEach((issue) => {
-            const field = issue.path[0] as keyof LoginFormData;
+            const field = issue.path[0] as keyof RegisterFormData;
             if (field) {
               form.setFieldMeta(field, (prev) => ({
                 ...prev,
@@ -39,17 +41,24 @@ export default function LoginPage() {
       },
     },
     onSubmit: async ({ value }) => {
-      loginMutation.mutate(value, {
-        onError: (error: Error) => {
-          form.setFieldMeta("email", (prev) => ({
-            ...prev,
-            errorMap: {
-              ...prev.errorMap,
-              onSubmit: error.message || "Login failed",
-            },
-          }));
+      registerMutation.mutate(
+        {
+          email: value.email,
+          password: value.password,
+          name: value.name.trim(),
         },
-      });
+        {
+          onError: (error: Error) => {
+            form.setFieldMeta("email", (prev) => ({
+              ...prev,
+              errorMap: {
+                ...prev.errorMap,
+                onSubmit: error.message || "Registration failed",
+              },
+            }));
+          },
+        }
+      );
     },
   });
 
@@ -59,15 +68,15 @@ export default function LoginPage() {
         <div className="space-y-8">
           <div>
             <h2 className="text-center text-3xl font-extrabold">
-              Login
+              Registration
             </h2>
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Dont have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/register"
+                href="/login"
                 className="font-medium text-primary hover:underline"
               >
-                Register
+                Login
               </Link>
             </p>
           </div>
@@ -78,6 +87,29 @@ export default function LoginPage() {
             }}
             className="space-y-6"
           >
+            <form.Field name="name">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Name</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type="text"
+                    autoComplete="name"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Name"
+                  />
+                  {field.state.meta.errors[0] && (
+                    <p className="text-sm text-destructive">
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
             <form.Field name="email">
               {(field) => (
                 <div className="space-y-2">
@@ -109,11 +141,34 @@ export default function LoginPage() {
                     id={field.name}
                     name={field.name}
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
                     placeholder="Password"
+                  />
+                  {field.state.meta.errors[0] && (
+                    <p className="text-sm text-destructive">
+                      {String(field.state.meta.errors[0])}
+                    </p>
+                  )}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="confirmPassword">
+              {(field) => (
+                <div className="space-y-2">
+                  <Label htmlFor={field.name}>Confirm Password</Label>
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type="password"
+                    autoComplete="new-password"
+                    value={field.state.value}
+                    onBlur={field.handleBlur}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Confirm Password"
                   />
                   {field.state.meta.errors[0] && (
                     <p className="text-sm text-destructive">
@@ -130,12 +185,12 @@ export default function LoginPage() {
               {([canSubmit, isSubmitting]) => (
                 <Button
                   type="submit"
-                  disabled={!canSubmit || loginMutation.isPending}
+                  disabled={!canSubmit || registerMutation.isPending}
                   className="w-full"
                 >
-                  {isSubmitting || loginMutation.isPending
-                    ? "Login..."
-                    : "Login"}
+                  {isSubmitting || registerMutation.isPending
+                    ? "Registration..."
+                    : "Register"}
                 </Button>
               )}
             </form.Subscribe>

@@ -1,18 +1,38 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
 const uri = process.env.MONGO_URL!;
-const client = new MongoClient(uri);
 
-const clientPromise = client.connect();
+let client: MongoClient;
+let clientPromise: Promise<MongoClient>;
 
-if (!global._mongoClientPromise) {
-  global._mongoClientPromise = clientPromise;
+if (process.env.NODE_ENV === "development") {
+  // In development mode, use a global variable so that the value
+  // is preserved across module reloads caused by HMR (Hot Module Replacement).
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri);
+    global._mongoClientPromise = client.connect();
+  }
+  clientPromise = global._mongoClientPromise;
+} else {
+  // In production mode, it's best to not use a global variable.
+  client = new MongoClient(uri);
+  clientPromise = client.connect();
 }
 
-export const db = async () => {
+export const getClient = async (): Promise<MongoClient> => {
+  return await clientPromise;
+};
+
+export const db = async (): Promise<Db> => {
   const client = await clientPromise;
   return client.db("tracker_app");
-}
+};
+
+// For Better Auth - we need to get the db instance
+// Since Better Auth adapter needs Db synchronously, we'll create a wrapper
+export const getAuthDb = async (): Promise<Db> => {
+  return await db();
+};
 
 declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
