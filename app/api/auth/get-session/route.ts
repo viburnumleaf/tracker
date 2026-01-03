@@ -1,11 +1,5 @@
-import { getAuth } from "@/src/lib/auth";
+import { withHandler } from "@/src/lib/api-handler";
+import { getSession } from "@/src/domains/auth/auth.controller";
 
-export async function GET(request: Request) {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  return Response.json(session);
-}
+export const GET = withHandler((request) => getSession(request));
 

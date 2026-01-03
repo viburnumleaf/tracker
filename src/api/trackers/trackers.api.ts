@@ -24,7 +24,6 @@ export interface JsonSchema {
 
 export interface Tracker {
   _id: string;
-  userId: string;
   name: string;
   schema: JsonSchema;
   createdAt: string;
@@ -85,5 +84,15 @@ export const trackersApi = {
       { data: entry.data }
     );
     return response.data;
+  },
+
+  // Delete a tracker
+  deleteTracker: async (trackerId: string): Promise<void> => {
+    await apiClient.delete(`/api/logs?trackerId=${trackerId}`);
+  },
+
+  // Delete a log entry
+  deleteLogEntry: async (trackerId: string, logEntryId: string): Promise<void> => {
+    await apiClient.delete(`/api/logs/${trackerId}/entries?logEntryId=${logEntryId}`);
   },
 };

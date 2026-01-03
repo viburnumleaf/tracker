@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser, useLogout } from "@/src/features/auth/hooks";
-import { useTrackers } from "@/src/features/trackers/hooks";
+import { useTrackers, useDeleteTracker } from "@/src/features/trackers/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,10 +12,21 @@ import {
   InputGroupButton,
   InputGroupAddon,
 } from "@/components/ui/input-group";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Trash2, List } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CreateTrackerDialog } from "@/components/trackers/CreateTrackerDialog";
 import { LogEntryDialog } from "@/components/trackers/LogEntryDialog";
+import { LogEntriesListDialog } from "@/components/trackers/LogEntriesListDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 
 export default function DashboardPage() {
@@ -24,10 +35,14 @@ export default function DashboardPage() {
   const { user } = useUser();
   const logoutMutation = useLogout();
   const { trackers, isLoading: trackersLoading } = useTrackers();
+  const deleteTrackerMutation = useDeleteTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedTracker, setSelectedTracker] = useState<Tracker | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [logsListDialogOpen, setLogsListDialogOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [trackerToDelete, setTrackerToDelete] = useState<Tracker | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -50,6 +65,30 @@ export default function DashboardPage() {
   const handleTrackerClick = (tracker: Tracker) => {
     setSelectedTracker(tracker);
     setLogDialogOpen(true);
+  };
+
+  const handleDeleteTrackerClick = (e: React.MouseEvent, tracker: Tracker) => {
+    e.stopPropagation();
+    setTrackerToDelete(tracker);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteTrackerConfirm = async () => {
+    if (!trackerToDelete) return;
+
+    try {
+      await deleteTrackerMutation.mutateAsync(trackerToDelete._id);
+      setDeleteConfirmOpen(false);
+      setTrackerToDelete(null);
+    } catch (error) {
+      console.error("Failed to delete tracker:", error);
+    }
+  };
+
+  const handleViewLogsClick = (e: React.MouseEvent, tracker: Tracker) => {
+    e.stopPropagation();
+    setSelectedTracker(tracker);
+    setLogsListDialogOpen(true);
   };
 
   const filteredTrackers = useMemo(() => {
@@ -111,12 +150,47 @@ export default function DashboardPage() {
               {filteredTrackers.map((tracker) => (
                 <Card
                   key={tracker._id}
-                  className="p-4 cursor-pointer hover:bg-accent transition-colors"
+                  className="p-4 cursor-pointer hover:bg-accent transition-colors relative"
                   onClick={() => handleTrackerClick(tracker)}
                 >
-                  <h3 className="font-semibold text-lg mb-2 capitalize">
-                    {tracker.name.replace(/_/g, " ")}
-                  </h3>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-lg capitalize flex-1">
+                      {tracker.name.replace(/_/g, " ")}
+                    </h3>
+                    <div className="flex gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleViewLogsClick(e, tracker)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <List className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View all logs</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => handleDeleteTrackerClick(e, tracker)}
+                            disabled={deleteTrackerMutation.isPending}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete tracker</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     Created: {new Date(tracker.createdAt).toLocaleDateString()}
                   </p>
@@ -177,6 +251,32 @@ export default function DashboardPage() {
         onOpenChange={setLogDialogOpen}
         tracker={selectedTracker}
       />
+      <LogEntriesListDialog
+        open={logsListDialogOpen}
+        onOpenChange={setLogsListDialogOpen}
+        tracker={selectedTracker}
+      />
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tracker</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this tracker? This will remove it
+              from your list. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTrackerConfirm}
+              disabled={deleteTrackerMutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteTrackerMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
