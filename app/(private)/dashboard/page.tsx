@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser, useLogout } from "@/src/features/auth/hooks";
-import { useTrackers, useDeleteTracker } from "@/src/features/trackers/hooks";
+import { useAuth, useUser, useLogout, useCapsLock } from "@/src/features/auth/hooks";
+import { useTrackers, useDeleteTracker, usePermanentlyDeleteTracker } from "@/src/features/trackers/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -12,9 +12,10 @@ import {
   InputGroupButton,
   InputGroupAddon,
 } from "@/components/ui/input-group";
-import { Plus, Search, Trash2, List } from "lucide-react";
+import { Plus, Search, Trash2, List, Pencil } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CreateTrackerDialog } from "@/components/trackers/CreateTrackerDialog";
+import { EditTrackerDialog } from "@/components/trackers/EditTrackerDialog";
 import { LogEntryDialog } from "@/components/trackers/LogEntryDialog";
 import { LogEntriesListDialog } from "@/components/trackers/LogEntriesListDialog";
 import {
@@ -34,15 +35,20 @@ export default function DashboardPage() {
   const { session, isLoading, isAuthenticated } = useAuth();
   const { user } = useUser();
   const logoutMutation = useLogout();
-  const { trackers, isLoading: trackersLoading } = useTrackers();
+  const isAdminMode = useCapsLock();
+  const { trackers, isLoading: trackersLoading } = useTrackers(isAdminMode);
   const deleteTrackerMutation = useDeleteTracker();
+  const permanentlyDeleteTrackerMutation = usePermanentlyDeleteTracker();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [selectedTracker, setSelectedTracker] = useState<Tracker | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedTrackerId, setSelectedTrackerId] = useState<string | null>(null);
+  const [trackerToEditId, setTrackerToEditId] = useState<string | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [logsListDialogOpen, setLogsListDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [trackerToDelete, setTrackerToDelete] = useState<Tracker | null>(null);
+  const [trackerToDelete, setTrackerToDelete] = useState<(Tracker & { isDeleted?: boolean }) | null>(null);
+  const [isPermanentDelete, setIsPermanentDelete] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -63,13 +69,14 @@ export default function DashboardPage() {
   };
 
   const handleTrackerClick = (tracker: Tracker) => {
-    setSelectedTracker(tracker);
+    setSelectedTrackerId(tracker._id);
     setLogDialogOpen(true);
   };
 
-  const handleDeleteTrackerClick = (e: React.MouseEvent, tracker: Tracker) => {
+  const handleDeleteTrackerClick = (e: React.MouseEvent, tracker: Tracker & { isDeleted?: boolean }) => {
     e.stopPropagation();
     setTrackerToDelete(tracker);
+    setIsPermanentDelete(tracker.isDeleted || false);
     setDeleteConfirmOpen(true);
   };
 
@@ -77,9 +84,14 @@ export default function DashboardPage() {
     if (!trackerToDelete) return;
 
     try {
-      await deleteTrackerMutation.mutateAsync(trackerToDelete._id);
+      if (isPermanentDelete) {
+        await permanentlyDeleteTrackerMutation.mutateAsync(trackerToDelete._id);
+      } else {
+        await deleteTrackerMutation.mutateAsync(trackerToDelete._id);
+      }
       setDeleteConfirmOpen(false);
       setTrackerToDelete(null);
+      setIsPermanentDelete(false);
     } catch (error) {
       console.error("Failed to delete tracker:", error);
     }
@@ -87,17 +99,29 @@ export default function DashboardPage() {
 
   const handleViewLogsClick = (e: React.MouseEvent, tracker: Tracker) => {
     e.stopPropagation();
-    setSelectedTracker(tracker);
+    setSelectedTrackerId(tracker._id);
     setLogsListDialogOpen(true);
   };
 
+  const handleEditTrackerClick = (e: React.MouseEvent, tracker: Tracker) => {
+    e.stopPropagation();
+    setTrackerToEditId(tracker._id);
+    setEditDialogOpen(true);
+  };
+
   const filteredTrackers = useMemo(() => {
-    if (!searchQuery.trim()) return trackers;
+    // Filter out deleted trackers when not in admin mode
+    const visibleTrackers = isAdminMode
+      ? trackers
+      : trackers.filter((tracker) => !tracker.isDeleted);
+    
+    // Apply search filter
+    if (!searchQuery.trim()) return visibleTrackers;
     const query = searchQuery.toLowerCase();
-    return trackers.filter((tracker) =>
+    return visibleTrackers.filter((tracker) =>
       tracker.name.toLowerCase().includes(query)
     );
-  }, [trackers, searchQuery]);
+  }, [trackers, searchQuery, isAdminMode]);
 
   if (isLoading) {
     return (
@@ -136,7 +160,14 @@ export default function DashboardPage() {
 
         {/* List of trackers */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">My trackers</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">My trackers</h2>
+            {isAdminMode && (
+              <span className="text-xs text-muted-foreground bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">
+                Admin Mode (Caps Lock)
+              </span>
+            )}
+          </div>
           {trackersLoading ? (
             <div className="text-muted-foreground text-sm">Loading trackers...</div>
           ) : filteredTrackers.length === 0 ? (
@@ -147,61 +178,88 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredTrackers.map((tracker) => (
-                <Card
-                  key={tracker._id}
-                  className="p-4 cursor-pointer hover:bg-accent transition-colors relative"
-                  onClick={() => handleTrackerClick(tracker)}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-lg capitalize flex-1">
-                      {tracker.name.replace(/_/g, " ")}
-                    </h3>
-                    <div className="flex gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleViewLogsClick(e, tracker)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <List className="size-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>View all logs</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => handleDeleteTrackerClick(e, tracker)}
-                            disabled={deleteTrackerMutation.isPending}
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Delete tracker</p>
-                        </TooltipContent>
-                      </Tooltip>
+              {filteredTrackers.map((tracker) => {
+                const isDeleted = tracker.isDeleted || false;
+                return (
+                  <Card
+                    key={tracker._id}
+                    className={`p-4 cursor-pointer hover:bg-accent transition-colors relative ${
+                      isDeleted
+                        ? "opacity-50 border-dashed border-2 border-destructive"
+                        : ""
+                    }`}
+                    onClick={() => !isDeleted && handleTrackerClick(tracker)}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-lg capitalize flex-1">
+                        {tracker.name.replace(/_/g, " ")}
+                        {isDeleted && (
+                          <span className="ml-2 text-xs text-destructive">(Deleted)</span>
+                        )}
+                      </h3>
+                      <div className="flex gap-1 ml-2" onClick={(e) => e.stopPropagation()}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleViewLogsClick(e, tracker)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <List className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View all logs</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {isAdminMode && !isDeleted && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => handleEditTrackerClick(e, tracker)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Pencil className="size-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit tracker schema</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => handleDeleteTrackerClick(e, tracker)}
+                              disabled={deleteTrackerMutation.isPending || permanentlyDeleteTrackerMutation.isPending}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{isDeleted ? "Permanently delete tracker" : "Delete tracker"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Created: {new Date(tracker.createdAt).toLocaleDateString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {Object.keys(tracker.schema.properties || {}).length} field
-                    {Object.keys(tracker.schema.properties || {}).length !== 1
-                      ? "s"
-                      : ""}
-                  </p>
-                </Card>
-              ))}
+                    <p className="text-sm text-muted-foreground">
+                      Created: {new Date(tracker.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {Object.keys(tracker.schema.properties || {}).length} field
+                      {Object.keys(tracker.schema.properties || {}).length !== 1
+                        ? "s"
+                        : ""}
+                    </p>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -246,33 +304,60 @@ export default function DashboardPage() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
       />
+      <EditTrackerDialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          setEditDialogOpen(open);
+          if (!open) {
+            setTrackerToEditId(null);
+          }
+        }}
+        tracker={trackers.find((t) => t._id === trackerToEditId) || null}
+      />
       <LogEntryDialog
         open={logDialogOpen}
-        onOpenChange={setLogDialogOpen}
-        tracker={selectedTracker}
+        onOpenChange={(open) => {
+          setLogDialogOpen(open);
+          if (!open) {
+            setSelectedTrackerId(null);
+          }
+        }}
+        tracker={trackers.find((t) => t._id === selectedTrackerId) || null}
       />
       <LogEntriesListDialog
         open={logsListDialogOpen}
-        onOpenChange={setLogsListDialogOpen}
-        tracker={selectedTracker}
+        onOpenChange={(open) => {
+          setLogsListDialogOpen(open);
+          if (!open) {
+            setSelectedTrackerId(null);
+          }
+        }}
+        tracker={trackers.find((t) => t._id === selectedTrackerId) || null}
       />
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tracker</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isPermanentDelete ? "Permanently Delete Tracker" : "Delete Tracker"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this tracker? This will remove it
-              from your list. This action cannot be undone.
+              {isPermanentDelete
+                ? "Are you sure you want to permanently delete this tracker? This will completely remove it from the database and all associated log entries. This action cannot be undone."
+                : "Are you sure you want to delete this tracker? This will remove it from your list. This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTrackerConfirm}
-              disabled={deleteTrackerMutation.isPending}
+              disabled={deleteTrackerMutation.isPending || permanentlyDeleteTrackerMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteTrackerMutation.isPending ? "Deleting..." : "Delete"}
+              {(deleteTrackerMutation.isPending || permanentlyDeleteTrackerMutation.isPending)
+                ? "Deleting..."
+                : isPermanentDelete
+                ? "Permanently Delete"
+                : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

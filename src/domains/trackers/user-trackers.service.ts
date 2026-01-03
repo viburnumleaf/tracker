@@ -64,6 +64,7 @@ export class UserTrackersService {
       { userId },
       {
         $set: { trackerIds: data.trackerIds },
+        $setOnInsert: { deletedTrackerIds: [] },
       },
       { upsert: true }
     );
@@ -95,8 +96,9 @@ export class UserTrackersService {
     await database.collection("user_trackers").updateOne(
       { userId },
       {
-        $setOnInsert: { userId, trackerIds: [] },
+        $setOnInsert: { userId, trackerIds: [], deletedTrackerIds: [] },
         $addToSet: { trackerIds: trackerId },
+        $pull: { deletedTrackerIds: trackerId }, // Remove from deleted if it was there
       } as unknown as Record<string, unknown>,
       { upsert: true }
     );

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { trackersApi, Tracker } from "@/src/api/trackers/trackers.api";
 import { useAuth } from "@/src/features/auth/hooks/useAuth";
 
-export const useTrackers = () => {
+export const useTrackers = (includeDeleted: boolean = false) => {
   const { isAuthenticated } = useAuth();
 
   const {
@@ -10,9 +10,9 @@ export const useTrackers = () => {
     isLoading,
     error,
     refetch,
-  } = useQuery<Tracker[]>({
-    queryKey: ["trackers"],
-    queryFn: trackersApi.getTrackers,
+  } = useQuery<(Tracker & { isDeleted?: boolean })[]>({
+    queryKey: ["trackers", includeDeleted],
+    queryFn: () => trackersApi.getTrackers(includeDeleted),
     enabled: isAuthenticated,
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes

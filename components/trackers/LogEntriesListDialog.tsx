@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useLogEntries, useDeleteLogEntry } from "@/src/features/trackers/hooks";
+import { useLogEntries, useDeleteLogEntry, usePermanentlyDeleteLogEntry } from "@/src/features/trackers/hooks";
+import { useCapsLock } from "@/src/features/auth/hooks";
 import {
   Dialog,
   DialogContent,
@@ -35,13 +36,17 @@ export function LogEntriesListDialog({
   onOpenChange,
   tracker,
 }: LogEntriesListDialogProps) {
-  const { entries, isLoading } = useLogEntries(tracker?._id || null);
+  const isAdminMode = useCapsLock();
+  const { entries, isLoading } = useLogEntries(tracker?._id || null, isAdminMode);
   const deleteLogEntryMutation = useDeleteLogEntry();
+  const permanentlyDeleteLogEntryMutation = usePermanentlyDeleteLogEntry();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [entryToDelete, setEntryToDelete] = useState<LogEntry | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<(LogEntry & { isDeleted?: boolean }) | null>(null);
+  const [isPermanentDelete, setIsPermanentDelete] = useState(false);
 
-  const handleDeleteClick = (entry: LogEntry) => {
+  const handleDeleteClick = (entry: LogEntry & { isDeleted?: boolean }) => {
     setEntryToDelete(entry);
+    setIsPermanentDelete(entry.isDeleted || false);
     setDeleteConfirmOpen(true);
   };
 
@@ -49,12 +54,20 @@ export function LogEntriesListDialog({
     if (!entryToDelete || !tracker) return;
 
     try {
-      await deleteLogEntryMutation.mutateAsync({
-        trackerId: tracker._id,
-        logEntryId: entryToDelete._id,
-      });
+      if (isPermanentDelete) {
+        await permanentlyDeleteLogEntryMutation.mutateAsync({
+          trackerId: tracker._id,
+          logEntryId: entryToDelete._id,
+        });
+      } else {
+        await deleteLogEntryMutation.mutateAsync({
+          trackerId: tracker._id,
+          logEntryId: entryToDelete._id,
+        });
+      }
       setDeleteConfirmOpen(false);
       setEntryToDelete(null);
+      setIsPermanentDelete(false);
     } catch (error) {
       console.error("Failed to delete log entry:", error);
     }
@@ -84,8 +97,16 @@ export function LogEntriesListDialog({
               Log Entries: {tracker.name.replace(/_/g, " ")}
             </DialogTitle>
             <DialogDescription>
-              View and manage all log entries for this tracker. Only you can
-              delete your own entries.
+              {isAdminMode ? (
+                <span className="flex items-center gap-2">
+                  <span>Admin Mode (Caps Lock) - Viewing all entries including deleted ones.</span>
+                  <span className="text-xs text-muted-foreground bg-yellow-100 dark:bg-yellow-900 px-2 py-1 rounded">
+                    Admin
+                  </span>
+                </span>
+              ) : (
+                "View and manage all log entries for this tracker. Only you can delete your own entries."
+              )}
             </DialogDescription>
           </DialogHeader>
 
@@ -99,29 +120,44 @@ export function LogEntriesListDialog({
                 No log entries yet. Create your first entry to get started!
               </div>
             ) : (
-              entries.map((entry) => (
-                <Card key={entry._id} className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(entry.createdAt).toLocaleString()}
+              entries.map((entry) => {
+                const isDeleted = entry.isDeleted || false;
+                return (
+                  <Card
+                    key={entry._id}
+                    className={`p-4 ${
+                      isDeleted
+                        ? "opacity-50 border-dashed border-2 border-destructive"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(entry.createdAt).toLocaleString()}
+                          </div>
+                          {isDeleted && (
+                            <span className="text-xs text-destructive">(Deleted)</span>
+                          )}
+                        </div>
+                        <div className="text-sm">
+                          {formatEntryData(entry.data)}
+                        </div>
                       </div>
-                      <div className="text-sm">
-                        {formatEntryData(entry.data)}
-                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteClick(entry)}
+                        disabled={deleteLogEntryMutation.isPending || permanentlyDeleteLogEntryMutation.isPending}
+                        className="shrink-0"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(entry)}
-                      disabled={deleteLogEntryMutation.isPending}
-                      className="shrink-0"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </Card>
-              ))
+                  </Card>
+                );
+              })
             )}
           </div>
         </DialogContent>
@@ -130,20 +166,27 @@ export function LogEntriesListDialog({
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Log Entry</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isPermanentDelete ? "Permanently Delete Log Entry" : "Delete Log Entry"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this log entry? This action cannot
-              be undone.
+              {isPermanentDelete
+                ? "Are you sure you want to permanently delete this log entry? This will completely remove it from the database. This action cannot be undone."
+                : "Are you sure you want to delete this log entry? This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              disabled={deleteLogEntryMutation.isPending}
+              disabled={deleteLogEntryMutation.isPending || permanentlyDeleteLogEntryMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLogEntryMutation.isPending ? "Deleting..." : "Delete"}
+              {(deleteLogEntryMutation.isPending || permanentlyDeleteLogEntryMutation.isPending)
+                ? "Deleting..."
+                : isPermanentDelete
+                ? "Permanently Delete"
+                : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
