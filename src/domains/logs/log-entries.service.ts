@@ -7,6 +7,7 @@ import { validateAgainstSchema } from "@/src/lib/schema-validator";
 export const createLogEntrySchema = z.object({
   data: z.record(z.string(), z.unknown()),
   customEnumValues: z.record(z.string(), z.array(z.string())).optional(),
+  createdAt: z.string().optional(),
 });
 
 export type CreateLogEntryDto = z.infer<typeof createLogEntrySchema>;
@@ -225,7 +226,7 @@ export class LogEntriesService {
       trackerId: trackerId,
       userId,
       data: data.data,
-      createdAt: now,
+      createdAt: data.createdAt || now,
     };
 
     // Create indexes for logs collection if they don't exist

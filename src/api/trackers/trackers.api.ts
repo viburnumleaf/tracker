@@ -62,6 +62,7 @@ export interface CreateLogEntryRequest {
   trackerId: string;
   data: Record<string, unknown>;
   customEnumValues?: Record<string, string[]>;
+  createdAt?: string;
 }
 
 // Trackers API methods
@@ -113,7 +114,8 @@ export const trackersApi = {
       `/api/logs/${entry.trackerId}/entries`,
       { 
         data: entry.data,
-        customEnumValues: entry.customEnumValues
+        customEnumValues: entry.customEnumValues,
+        createdAt: entry.createdAt
       }
     );
     return response.data;
