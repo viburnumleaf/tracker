@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCreateLogEntry, useTrackers } from "@/src/features/trackers/hooks";
 import { useCapsLock } from "@/src/features/auth/hooks";
+import { useCreateDraft, useDeleteDraft } from "@/src/features/drafts/hooks";
 import {
   Dialog,
   DialogClose,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { XIcon, Link2 } from "lucide-react";
 import { FieldError } from "@/components/ui/field";
 import { Tracker } from "@/src/api/trackers/trackers.api";
+import { DraftEntry } from "@/src/api/drafts/drafts.api";
 import { useLogEntryForm } from "./hooks/useLogEntryForm";
 import { useLinkedTrackers } from "./hooks/useLinkedTrackers";
 import { useNestedObjectAutoFill } from "./hooks/useNestedObjectAutoFill";
@@ -26,14 +28,18 @@ interface LogEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tracker: Tracker | null;
+  draft?: DraftEntry | null;
 }
 
 export function LogEntryDialog({
   open,
   onOpenChange,
   tracker,
+  draft,
 }: LogEntryDialogProps) {
   const createLogEntryMutation = useCreateLogEntry();
+  const createDraftMutation = useCreateDraft();
+  const deleteDraftMutation = useDeleteDraft();
   const isAdminMode = useCapsLock();
   const { trackers } = useTrackers(false);
   const [linkedTrackerDialogOpen, setLinkedTrackerDialogOpen] = useState(false);
@@ -52,7 +58,9 @@ export function LogEntryDialog({
     setCustomEnumValues,
     setCustomInputStates,
     prepareFormDataForSubmit,
-  } = useLogEntryForm({ tracker, open });
+    resetForm,
+    clearLocalStorage,
+  } = useLogEntryForm({ tracker, open, draft });
 
   // Автоматичне заповнення вкладених об'єктів
   useNestedObjectAutoFill({
@@ -82,6 +90,19 @@ export function LogEntryDialog({
         data: finalData,
         customEnumValues: customEnumValues,
       });
+      
+      // Якщо форма була відкрита з драфтом, видаляємо його
+      if (draft?._id) {
+        try {
+          await deleteDraftMutation.mutateAsync(draft._id);
+        } catch (error) {
+          console.error("Failed to delete draft:", error);
+          // Не блокуємо закриття форми, якщо видалення драфту не вдалося
+        }
+      }
+      
+      // Очищаємо форму перед закриттям
+      resetForm();
       onOpenChange(false);
     } catch (error: unknown) {
       console.error("Failed to create log entry:", error);
@@ -112,6 +133,27 @@ export function LogEntryDialog({
       setSelectedLinkedTracker(linkedTracker);
       setLinkedTrackerDialogOpen(true);
     }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!tracker) return;
+
+    try {
+      const finalData = prepareFormDataForSubmit();
+      await createDraftMutation.mutateAsync({
+        trackerId: tracker._id,
+        data: finalData,
+        customEnumValues: customEnumValues,
+      });
+      // Optionally show a success message or close the dialog
+    } catch (error) {
+      console.error("Failed to save draft:", error);
+    }
+  };
+
+  const handleReset = () => {
+    clearLocalStorage();
+    resetForm();
   };
 
   if (!tracker) return null;
@@ -216,13 +258,31 @@ export function LogEntryDialog({
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  disabled={createLogEntryMutation.isPending}
+                  disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={createLogEntryMutation.isPending}>
-                  {createLogEntryMutation.isPending ? "Saving..." : "Save Entry"}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleReset}
+                    disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveDraft}
+                    disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
+                    className="hue-rotate-180"
+                  >
+                    {createDraftMutation.isPending ? "Saving..." : "Save Draft"}
+                  </Button>
+                  <Button type="submit" disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}>
+                    {createLogEntryMutation.isPending ? "Saving..." : "Save Entry"}
+                  </Button>
+                </div>
               </div>
             </div>
           </DialogFooter>

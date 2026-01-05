@@ -1,5 +1,10 @@
-import { JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
-import { Field, FieldContent, FieldLabel, FieldError } from "@/components/ui/field";
+import { JsonSchemaProperty, Tracker } from "@/src/api/trackers/trackers.api";
+import {
+  Field,
+  FieldContent,
+  FieldLabel,
+  FieldError,
+} from "@/components/ui/field";
 import {
   Select,
   SelectContent,
@@ -9,7 +14,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 import { CustomInputState } from "../types";
+import { useUpdateTracker } from "@/src/features/trackers/hooks";
+import { useCapsLock } from "@/src/features/auth/hooks";
 
 interface EnumFieldProps {
   fieldKey: string;
@@ -19,6 +27,7 @@ interface EnumFieldProps {
   isRequired: boolean;
   customEnumValues: string[];
   customInputState: CustomInputState;
+  tracker: Tracker | null;
   onUpdateField: (key: string, value: unknown) => void;
   onSetCustomEnumValues: React.Dispatch<
     React.SetStateAction<Record<string, string[]>>
@@ -36,12 +45,16 @@ export function EnumField({
   isRequired,
   customEnumValues,
   customInputState,
+  tracker,
   onUpdateField,
   onSetCustomEnumValues,
   onSetCustomInputStates,
 }: EnumFieldProps) {
+  const isAdminMode = useCapsLock();
+  const updateTrackerMutation = useUpdateTracker();
   const allOptions = [...(prop.enum || []), ...customEnumValues];
   const currentValue = String(value || "");
+  const schemaEnumValues = prop.enum || [];
 
   const handleAddCustomValue = (newValue: string) => {
     if (newValue.trim() && !allOptions.includes(newValue.trim())) {
@@ -50,11 +63,42 @@ export function EnumField({
         [fieldKey]: [...(prev[fieldKey] || []), newValue.trim()],
       }));
     }
+    // Автоматично обираємо нове значення
     onUpdateField(fieldKey, newValue.trim());
     onSetCustomInputStates((prev) => ({
       ...prev,
       [fieldKey]: { show: false, value: "" },
     }));
+  };
+
+  const handleRemoveEnumValue = async (enumValue: string) => {
+    if (!tracker || !isAdminMode) return;
+
+    // Очищаємо значення поля, якщо воно дорівнює видаленому enum значенню
+    if (currentValue === enumValue) {
+      onUpdateField(fieldKey, "");
+    }
+
+    // Оновлюємо схему трекера, видаляючи enum значення
+    const updatedSchema = {
+      ...tracker.schema,
+      properties: {
+        ...tracker.schema.properties,
+        [fieldKey]: {
+          ...tracker.schema.properties[fieldKey],
+          enum: schemaEnumValues.filter((v) => v !== enumValue),
+        },
+      },
+    };
+
+    try {
+      await updateTrackerMutation.mutateAsync({
+        trackerId: tracker._id,
+        data: { schema: updatedSchema },
+      });
+    } catch (error) {
+      console.error("Failed to remove enum value:", error);
+    }
   };
 
   return (
@@ -87,9 +131,35 @@ export function EnumField({
                   {option}
                 </SelectItem>
               ))}
-              <SelectItem value="__custom__">+ Додати нове значення</SelectItem>
+              <SelectItem value="__custom__">+ Add new value</SelectItem>
             </SelectContent>
           </Select>
+          {isAdminMode && schemaEnumValues.length > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="text-xs text-muted-foreground">Enum values:</div>
+              <div className="flex flex-wrap gap-1">
+                {schemaEnumValues.map((enumValue) => (
+                  <div
+                    key={enumValue}
+                    className="flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs"
+                  >
+                    <span>{enumValue}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveEnumValue(enumValue);
+                      }}
+                      className="hover:bg-destructive/20 rounded p-0.5"
+                      disabled={updateTrackerMutation.isPending}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {customInputState.show && (
             <div className="flex gap-2">
               <Input
@@ -101,7 +171,7 @@ export function EnumField({
                     [fieldKey]: { show: true, value: e.target.value },
                   }));
                 }}
-                placeholder="Введіть нове значення"
+                placeholder="Enter new value"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && customInputState.value.trim()) {
                     handleAddCustomValue(customInputState.value);
@@ -118,17 +188,19 @@ export function EnumField({
                 type="button"
                 variant="outline"
                 size="sm"
+                className="h-auto"
                 onClick={() => {
                   if (customInputState.value.trim()) {
                     handleAddCustomValue(customInputState.value);
                   }
                 }}
               >
-                Додати
+                Add
               </Button>
               <Button
                 type="button"
                 variant="ghost"
+                className="h-auto"
                 size="sm"
                 onClick={() => {
                   onSetCustomInputStates((prev) => ({
@@ -137,7 +209,7 @@ export function EnumField({
                   }));
                 }}
               >
-                Скасувати
+                Cancel
               </Button>
             </div>
           )}

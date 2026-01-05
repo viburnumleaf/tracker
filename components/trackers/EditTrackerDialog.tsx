@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useUpdateTracker } from "@/src/features/trackers/hooks";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -12,8 +13,14 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldContent, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { JsonSchema, Tracker } from "@/src/api/trackers/trackers.api";
+import { XIcon } from "lucide-react";
 
 interface EditTrackerDialogProps {
   open: boolean;
@@ -54,7 +61,9 @@ export function EditTrackerDialog({
       const parsed = JSON.parse(schemaJson);
       // Basic validation
       if (parsed.type !== "object" || !parsed.properties) {
-        throw new Error("Schema must have type 'object' and 'properties' field");
+        throw new Error(
+          "Schema must have type 'object' and 'properties' field"
+        );
       }
       schema = parsed as JsonSchema;
     } catch (error) {
@@ -84,34 +93,58 @@ export function EditTrackerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Edit Tracker Schema: {tracker.name.replace(/_/g, " ")}</DialogTitle>
+      <DialogContent
+        className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
+        showCloseButton={false}
+      >
+        <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
+          <DialogTitle>
+            Edit Tracker Schema: {tracker.name.replace(/_/g, " ")}
+          </DialogTitle>
           <DialogDescription>
-            Update the JSON schema for this tracker. Changes will affect all users of this tracker.
+            Update the JSON schema for this tracker. Changes will affect all
+            users of this tracker.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Field>
-              <FieldLabel>JSON Schema</FieldLabel>
-              <FieldContent>
-                <Textarea
-                  value={schemaJson}
-                  onChange={(e) => setSchemaJson(e.target.value)}
-                  placeholder='{"type": "object", "properties": {}, "required": []}'
-                  className="min-h-64 font-mono text-xs"
-                  required
-                />
-                {schemaError && <FieldError>{schemaError}</FieldError>}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Define the structure of your tracker data using JSON Schema format.
-                </p>
-              </FieldContent>
-            </Field>
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-2 z-10 right-3"
+            disabled={updateTrackerMutation.isPending}
+          >
+            <XIcon />
+            <span className="sr-only">Close</span>
+          </Button>
+        </DialogClose>
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 min-h-0"
+        >
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+            <div className="space-y-4">
+              <Field>
+                <FieldLabel>JSON Schema</FieldLabel>
+                <FieldContent>
+                  <Textarea
+                    value={schemaJson}
+                    onChange={(e) => setSchemaJson(e.target.value)}
+                    placeholder='{"type": "object", "properties": {}, "required": []}'
+                    className="min-h-64 font-mono text-xs"
+                    required
+                  />
+                  {schemaError && <FieldError>{schemaError}</FieldError>}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Define the structure of your tracker data using JSON Schema
+                    format.
+                  </p>
+                </FieldContent>
+              </Field>
+            </div>
           </div>
 
-          <DialogFooter className="mt-6">
+          <DialogFooter className="bottom-0 z-10 bg-background border-t border-border px-4 py-3 shrink-0 mt-0 relative">
             <Button
               type="button"
               variant="outline"
@@ -120,11 +153,10 @@ export function EditTrackerDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={updateTrackerMutation.isPending}
-            >
-              {updateTrackerMutation.isPending ? "Updating..." : "Update Schema"}
+            <Button type="submit" disabled={updateTrackerMutation.isPending}>
+              {updateTrackerMutation.isPending
+                ? "Updating..."
+                : "Update Schema"}
             </Button>
           </DialogFooter>
         </form>

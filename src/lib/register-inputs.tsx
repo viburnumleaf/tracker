@@ -3,6 +3,7 @@
 import { inputRegistry } from "./input-registry";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
+import { EmotionSlider } from "@/components/trackers/LogEntryDialog/components/EmotionSlider";
 
 /**
  * Реєструє всі кастомні типи інпутів
@@ -18,8 +19,17 @@ import { Label } from "@/components/ui/label";
  *   "default": 0,
  *   "description": "Select your pain level"
  * }
+ * 
+ * @example Використання emotion-slider в схемі:
+ * {
+ *   "type": "string",
+ *   "title": "Emotion",
+ *   "inputType": "emotion-slider",
+ *   "enum": ["5 - Best", "4 - Good", "3 - Neutral", "2 - Bad", "1 - Worst"],
+ *   "description": "Select your emotional state"
+ * }
  */
-export function registerInputTypes() {
+function registerInputTypes() {
   // Реєструємо слайдер
   inputRegistry.register("slider", ({ value, onChange, schema }) => {
     // Визначаємо поточне значення: використовуємо value, або default, або minimum, або 0
@@ -53,7 +63,21 @@ export function registerInputTypes() {
     );
   });
 
+  // Реєструємо emotion-slider (слайдер з іконками емоцій)
+  inputRegistry.register("emotion-slider", ({ value, onChange, schema }) => {
+    return <EmotionSlider value={value} onChange={onChange} schema={schema} />;
+  });
+
   // Тут можна додати інші кастомні інпути
   // inputRegistry.register("checkbox", ...)
   // inputRegistry.register("custom-input", ...)
 }
+
+// Реєструємо одразу при завантаженні модуля (не через useEffect)
+// Це гарантує, що реєстрація відбувається перед рендерингом компонентів
+if (typeof window !== "undefined") {
+  registerInputTypes();
+}
+
+// Експортуємо функцію для ручного виклику, якщо потрібно
+export { registerInputTypes };

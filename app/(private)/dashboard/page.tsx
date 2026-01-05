@@ -12,12 +12,13 @@ import {
   InputGroupButton,
   InputGroupAddon,
 } from "@/components/ui/input-group";
-import { Plus, Search, Trash2, List, Pencil } from "lucide-react";
+import { Plus, Search, Trash2, List, Pencil, FileText } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CreateTrackerDialog } from "@/components/trackers/CreateTrackerDialog";
 import { EditTrackerDialog } from "@/components/trackers/EditTrackerDialog";
 import { LogEntryDialog } from "@/components/trackers/LogEntryDialog";
 import { LogEntriesListDialog } from "@/components/trackers/LogEntriesListDialog";
+import { DraftsListDialog } from "@/components/trackers/DraftsListDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,7 @@ export default function DashboardPage() {
   const [trackerToEditId, setTrackerToEditId] = useState<string | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [logsListDialogOpen, setLogsListDialogOpen] = useState(false);
+  const [draftsListDialogOpen, setDraftsListDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [trackerToDelete, setTrackerToDelete] = useState<(Tracker & { isDeleted?: boolean }) | null>(null);
   const [isPermanentDelete, setIsPermanentDelete] = useState(false);
@@ -279,22 +281,40 @@ export default function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             <InputGroupAddon align="inline-end">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InputGroupButton
-                    onClick={handleAddTracker}
-                    variant="default"
-                    size="icon-sm"
-                    className="ml-2 -mr-1"
-                    aria-label="Add new tracker"
-                  >
-                    <Plus className="size-4" />
-                  </InputGroupButton>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add new tracker</p>
-                </TooltipContent>
-              </Tooltip>
+              <div className="flex gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InputGroupButton
+                      onClick={() => setDraftsListDialogOpen(true)}
+                      variant="outline"
+                      size="icon-sm"
+                      className="ml-2 -mr-1"
+                      aria-label="View drafts"
+                    >
+                      <FileText className="size-4" />
+                    </InputGroupButton>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View drafts</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InputGroupButton
+                      onClick={handleAddTracker}
+                      variant="default"
+                      size="icon-sm"
+                      className="-mr-1"
+                      aria-label="Add new tracker"
+                    >
+                      <Plus className="size-4" />
+                    </InputGroupButton>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Add new tracker</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </InputGroupAddon>
           </InputGroup>
         </div>
@@ -333,6 +353,10 @@ export default function DashboardPage() {
           }
         }}
         tracker={trackers.find((t) => t._id === selectedTrackerId) || null}
+      />
+      <DraftsListDialog
+        open={draftsListDialogOpen}
+        onOpenChange={setDraftsListDialogOpen}
       />
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

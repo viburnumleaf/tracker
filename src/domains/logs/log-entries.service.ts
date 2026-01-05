@@ -1,7 +1,7 @@
 import { db } from "@/src/lib/db";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { JsonSchema } from "@/src/api/trackers/trackers.api";
+import { JsonSchema, JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
 import { validateAgainstSchema } from "@/src/lib/schema-validator";
 
 export const createLogEntrySchema = z.object({
@@ -10,6 +10,68 @@ export const createLogEntrySchema = z.object({
 });
 
 export type CreateLogEntryDto = z.infer<typeof createLogEntrySchema>;
+
+/**
+ * Оновлює схему трекера, додаючи нові enum значення з customEnumValues
+ */
+function updateTrackerSchemaWithCustomEnums(
+  schema: JsonSchema,
+  customEnumValues?: Record<string, string[]>
+): JsonSchema {
+  if (!customEnumValues || Object.keys(customEnumValues).length === 0) {
+    return schema;
+  }
+
+  const updatedProperties: Record<string, JsonSchemaProperty> = {
+    ...schema.properties,
+  };
+
+  // Функція для оновлення enum значень у властивості
+  const updatePropertyEnums = (
+    prop: JsonSchemaProperty,
+    fieldKey: string
+  ): JsonSchemaProperty => {
+    const updatedProp = { ...prop };
+
+    // Оновлюємо enum для поточного поля, якщо є customEnumValues
+    if (prop.enum && customEnumValues[fieldKey] && customEnumValues[fieldKey].length > 0) {
+      const existingEnum = prop.enum || [];
+      const customEnum = customEnumValues[fieldKey] || [];
+      // Об'єднуємо масиви, прибираючи дублікати
+      updatedProp.enum = Array.from(new Set([...existingEnum, ...customEnum]));
+    }
+
+    // Рекурсивно оновлюємо вкладені об'єкти
+    if (prop.properties) {
+      updatedProp.properties = {};
+      for (const [nestedKey, nestedProp] of Object.entries(prop.properties)) {
+        const nestedFieldKey = `${fieldKey}.${nestedKey}`;
+        updatedProp.properties[nestedKey] = updatePropertyEnums(
+          nestedProp,
+          nestedFieldKey
+        );
+      }
+    }
+
+    // Оновлюємо items для масивів
+    if (prop.items) {
+      const itemsFieldKey = `${fieldKey}[]`;
+      updatedProp.items = updatePropertyEnums(prop.items, itemsFieldKey);
+    }
+
+    return updatedProp;
+  };
+
+  // Оновлюємо всі поля
+  for (const [fieldKey, prop] of Object.entries(schema.properties)) {
+    updatedProperties[fieldKey] = updatePropertyEnums(prop, fieldKey);
+  }
+
+  return {
+    ...schema,
+    properties: updatedProperties,
+  };
+}
 
 export class LogEntriesService {
   /**
@@ -129,6 +191,32 @@ export class LogEntriesService {
       };
       error.fieldErrors = validation.fieldErrors;
       throw error;
+    }
+
+    // Оновлюємо схему трекера з новими enum значеннями
+    if (data.customEnumValues && Object.keys(data.customEnumValues).length > 0) {
+      const updatedSchema = updateTrackerSchemaWithCustomEnums(
+        trackerSchema,
+        data.customEnumValues
+      );
+
+      // Перевіряємо, чи є зміни в схемі
+      const schemaChanged = JSON.stringify(trackerSchema) !== JSON.stringify(updatedSchema);
+
+      if (schemaChanged) {
+        const schemaUpdateTime = new Date().toISOString();
+        await database.collection("trackers").updateOne(
+          { _id: new ObjectId(trackerId) },
+          {
+            $set: {
+              schema: updatedSchema,
+              updatedAt: schemaUpdateTime,
+            },
+          }
+        );
+        // Оновлюємо локальну копію схеми для подальшої обробки
+        tracker.schema = updatedSchema;
+      }
     }
 
     const now = new Date().toISOString();

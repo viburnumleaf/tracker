@@ -7,7 +7,10 @@ export const useCreateLogEntry = () => {
   return useMutation<LogEntry, Error, CreateLogEntryRequest>({
     mutationFn: (data) => trackersApi.createLogEntry(data),
     onSuccess: (_, variables) => {
+      // Інвалідуємо записи логів
       queryClient.invalidateQueries({ queryKey: ["trackers", variables.trackerId, "entries"] });
+      // Інвалідуємо трекери (щоб оновити схеми з новими enum значеннями)
+      queryClient.invalidateQueries({ queryKey: ["trackers"] });
     },
   });
 };

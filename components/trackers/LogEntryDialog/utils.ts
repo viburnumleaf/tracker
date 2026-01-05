@@ -68,14 +68,8 @@ export function convertDateTimeLocal(value: unknown): unknown {
  * HTML5 time input повертає HH:MM, а JSON Schema очікує HH:MM:SS
  */
 export function convertTime(value: unknown): unknown {
-  if (typeof value === "string") {
-    // Перевіряємо, чи це формат HH:MM (без секунд)
-    const timePattern = /^(\d{2}):(\d{2})$/;
-    const match = value.match(timePattern);
-    if (match) {
-      // Додаємо секунди: HH:MM -> HH:MM:00
-      return `${value}:00`;
-    }
+  if (typeof value === "string" && /^\d{2}:\d{2}$/.test(value)) {
+    return `${value}:00`;
   }
   return value;
 }
@@ -124,26 +118,68 @@ export function convertFormDataToISO(
 }
 
 /**
+ * Конвертує ISO дані назад в формат форми (datetime-local тощо)
+ * Використовується при завантаженні даних з чернетки
+ */
+export function convertISOToFormData(
+  isoData: LogEntryFormData,
+  properties: Record<string, JsonSchemaProperty>
+): LogEntryFormData {
+  const convertedData = { ...isoData };
+
+  // Конвертуємо поля верхнього рівня
+  for (const [key, prop] of Object.entries(properties)) {
+    if (prop.format === "date-time" && convertedData[key]) {
+      convertedData[key] = convertISOToDateTimeLocal(convertedData[key]);
+    }
+
+    // Конвертуємо поля в вкладених об'єктах
+    if (prop.type === "object" && prop.properties) {
+      const objectValue = convertedData[key] as
+        | Record<string, unknown>
+        | undefined;
+      if (objectValue && typeof objectValue === "object") {
+        const convertedObject: Record<string, unknown> = {};
+        for (const [nestedKey, nestedProp] of Object.entries(prop.properties)) {
+          if (nestedProp.format === "date-time" && objectValue[nestedKey]) {
+            convertedObject[nestedKey] = convertISOToDateTimeLocal(
+              objectValue[nestedKey]
+            );
+          } else {
+            convertedObject[nestedKey] = objectValue[nestedKey];
+          }
+        }
+        convertedData[key] = convertedObject;
+      }
+    }
+  }
+
+  return convertedData;
+}
+
+/**
  * Видаляє вкладені об'єкти, якщо їх dependsOn поле вимкнено
  */
 export function filterDisabledNestedObjects(
-  formData: LogEntryFormData,
+  data: LogEntryFormData,
   properties: Record<string, JsonSchemaProperty>
 ): LogEntryFormData {
-  const finalData = { ...formData };
+  const filteredData = { ...data };
+
   for (const [key, prop] of Object.entries(properties)) {
-    if (prop.type === "object" && prop.properties && prop.dependsOn) {
-      const dependsOnValue = finalData[prop.dependsOn];
+    if (prop.dependsOn && prop.type === "object") {
+      const dependsOnValue = filteredData[prop.dependsOn];
       if (
         !dependsOnValue ||
         dependsOnValue === false ||
         dependsOnValue === ""
       ) {
-        delete finalData[key];
+        delete filteredData[key];
       }
     }
   }
-  return finalData;
+
+  return filteredData;
 }
 
 /**
@@ -152,6 +188,10 @@ export function filterDisabledNestedObjects(
 export function getDefaultValue(prop: JsonSchemaProperty): unknown {
   if (prop.default !== undefined) {
     return prop.default;
+  }
+
+  if (prop.enum && prop.enum.length > 0) {
+    return prop.enum[0];
   }
 
   if (prop.format === "date-time" || prop.format === "date") {

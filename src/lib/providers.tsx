@@ -1,8 +1,9 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { registerInputTypes } from "./register-inputs";
+import { useState } from "react";
+// Імпорт для виконання реєстрації при завантаженні модуля
+import "./register-inputs";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -15,11 +16,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   );
-
-  // Реєструємо кастомні типи інпутів при ініціалізації
-  useEffect(() => {
-    registerInputTypes();
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

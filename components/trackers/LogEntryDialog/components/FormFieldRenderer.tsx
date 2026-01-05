@@ -32,8 +32,8 @@ export function FormFieldRenderer(props: FormFieldProps) {
   const fallbackType = prop.fallbackInputType || "text";
 
   // Перевіряємо inputType ПЕРЕД усіма перевірками типу поля
-  // Виключаємо dynamicCount та enum з перевірки inputType (вони мають свою логіку)
-  if (inputType && !prop.dynamicCount && !prop.enum) {
+  // Для enum полів також перевіряємо inputType (наприклад emotion-slider)
+  if (inputType && !prop.dynamicCount) {
     const customRenderer = inputRegistry.get(inputType, fallbackType);
     if (customRenderer) {
       return (
@@ -74,8 +74,8 @@ export function FormFieldRenderer(props: FormFieldProps) {
     );
   }
 
-  // Обробка enum полів
-  if (prop.enum && prop.type === "string") {
+  // Обробка enum полів (тільки якщо немає кастомного inputType)
+  if (prop.enum && prop.type === "string" && !inputType) {
     return (
       <EnumField
         key={fieldKey}
@@ -86,6 +86,7 @@ export function FormFieldRenderer(props: FormFieldProps) {
         isRequired={isRequired}
         customEnumValues={customEnumValues[fieldKey] || []}
         customInputState={customInputStates[fieldKey] || { show: false, value: "" }}
+        tracker={tracker}
         onUpdateField={onUpdateField}
         onSetCustomEnumValues={onSetCustomEnumValues}
         onSetCustomInputStates={onSetCustomInputStates}

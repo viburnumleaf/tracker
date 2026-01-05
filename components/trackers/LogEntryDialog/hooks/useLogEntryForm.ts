@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Tracker, JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
 import {
   LogEntryFormData,
@@ -10,11 +10,14 @@ import {
   initializeFormData,
   convertFormDataToISO,
   filterDisabledNestedObjects,
+  convertISOToFormData,
 } from "../utils";
+import { DraftEntry } from "@/src/api/drafts/drafts.api";
 
 interface UseLogEntryFormProps {
   tracker: Tracker | null;
   open: boolean;
+  draft?: DraftEntry | null;
 }
 
 interface UseLogEntryFormReturn {
@@ -30,11 +33,13 @@ interface UseLogEntryFormReturn {
   setCustomInputStates: React.Dispatch<React.SetStateAction<CustomInputStates>>;
   prepareFormDataForSubmit: () => LogEntryFormData;
   resetForm: () => void;
+  clearLocalStorage: () => void;
 }
 
 export function useLogEntryForm({
   tracker,
   open,
+  draft,
 }: UseLogEntryFormProps): UseLogEntryFormReturn {
   const [formData, setFormData] = useState<LogEntryFormData>({});
   const [customEnumValues, setCustomEnumValues] = useState<CustomEnumValues>(
@@ -46,26 +51,111 @@ export function useLogEntryForm({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // Ініціалізація форми
+  // Ключ для localStorage
+  const getStorageKey = useCallback(() => {
+    if (!tracker || !tracker._id) return null;
+    return `log_entry_draft_${tracker._id}`;
+  }, [tracker?._id]);
+
+  // Збереження форми в localStorage при зміні
+  useEffect(() => {
+    if (!open || !tracker) return;
+    const storageKey = getStorageKey();
+    if (!storageKey) return;
+
+    const draftData = {
+      formData,
+      customEnumValues,
+      customInputStates,
+      timestamp: Date.now(),
+    };
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draftData));
+    } catch (error) {
+      console.error("Failed to save draft to localStorage:", error);
+    }
+  }, [formData, customEnumValues, customInputStates, open, tracker, getStorageKey]);
+
+  // Очищення localStorage при закритті форми
+  useEffect(() => {
+    if (!open && tracker) {
+      const storageKey = getStorageKey();
+      if (storageKey) {
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (error) {
+          console.error("Failed to clear localStorage:", error);
+        }
+      }
+    }
+  }, [open, tracker, getStorageKey]);
+
+  // Ініціалізація форми з чернетки, localStorage або defaults
   useEffect(() => {
     if (open && tracker) {
+      const storageKey = getStorageKey();
+      let loadedData: {
+        formData: LogEntryFormData;
+        customEnumValues: CustomEnumValues;
+        customInputStates: CustomInputStates;
+      } | null = null;
+
+      // Спочатку перевіряємо, чи є чернетка з пропсів
+      if (draft) {
+        const properties = tracker.schema.properties || {};
+        // Конвертуємо ISO дані назад в формат форми
+        const draftFormData = convertISOToFormData(draft.data, properties);
+        loadedData = {
+          formData: draftFormData,
+          customEnumValues: draft.customEnumValues || {},
+          customInputStates: {},
+        };
+      } else {
+        // Спробуємо завантажити з localStorage
+        if (storageKey) {
+          try {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) {
+              loadedData = JSON.parse(stored);
+            }
+          } catch (error) {
+            console.error("Failed to load draft from localStorage:", error);
+          }
+        }
+      }
+
       const properties = tracker.schema.properties || {};
-      const initialData = initializeFormData(properties);
+      let initialData: LogEntryFormData;
+      
+      if (loadedData?.formData) {
+        // Якщо є завантажені дані, об'єднуємо їх з defaults для полів, яких немає
+        const defaultData = initializeFormData(properties);
+        initialData = { ...defaultData, ...loadedData.formData };
+      } else {
+        // Якщо немає завантажених даних, використовуємо тільки defaults
+        initialData = initializeFormData(properties);
+      }
+      
       setFormData(initialData);
 
       // Ініціалізуємо кастомні значення enum
-      const customValues: CustomEnumValues = {};
-      for (const [key, prop] of Object.entries(properties)) {
-        if (prop.enum && prop.type === "string") {
-          customValues[key] = [];
+      if (loadedData?.customEnumValues) {
+        setCustomEnumValues(loadedData.customEnumValues);
+      } else {
+        const customValues: CustomEnumValues = {};
+        for (const [key, prop] of Object.entries(properties)) {
+          if (prop.enum && prop.type === "string") {
+            customValues[key] = [];
+          }
         }
+        setCustomEnumValues(customValues);
       }
-      setCustomEnumValues(customValues);
-      setCustomInputStates({});
+
+      setCustomInputStates(loadedData?.customInputStates || {});
       setValidationError(null);
       setFieldErrors({});
     }
-  }, [open, tracker?._id]);
+  }, [open, tracker?._id, draft?._id, getStorageKey]);
 
   const resetForm = useCallback(() => {
     if (tracker) {
@@ -74,8 +164,29 @@ export function useLogEntryForm({
       setFormData(initialData);
       setValidationError(null);
       setFieldErrors({});
+      
+      // Очищаємо кастомні значення enum
+      const customValues: CustomEnumValues = {};
+      for (const [key, prop] of Object.entries(properties)) {
+        if (prop.enum && prop.type === "string") {
+          customValues[key] = [];
+        }
+      }
+      setCustomEnumValues(customValues);
+      setCustomInputStates({});
     }
   }, [tracker]);
+
+  const clearLocalStorage = useCallback(() => {
+    if (tracker) {
+      const storageKey = `log_entry_draft_${tracker._id}`;
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (error) {
+        console.error("Failed to clear localStorage:", error);
+      }
+    }
+  }, [tracker?._id, tracker]);
 
   // Оновлення поля з підтримкою вкладених ключів та dynamicCount
   const updateField = useCallback(
@@ -186,5 +297,6 @@ export function useLogEntryForm({
     setCustomInputStates,
     prepareFormDataForSubmit,
     resetForm,
+    clearLocalStorage,
   };
 }

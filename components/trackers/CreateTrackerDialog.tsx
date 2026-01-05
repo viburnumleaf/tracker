@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCreateTracker } from "@/src/features/trackers/hooks";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -13,8 +14,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Field, FieldContent, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldContent,
+  FieldError,
+  FieldLabel,
+} from "@/components/ui/field";
 import { JsonSchema } from "@/src/api/trackers/trackers.api";
+import { XIcon } from "lucide-react";
 
 interface CreateTrackerDialogProps {
   open: boolean;
@@ -50,7 +57,9 @@ export function CreateTrackerDialog({
       const parsed = JSON.parse(schemaJson);
       // Basic validation
       if (parsed.type !== "object" || !parsed.properties) {
-        throw new Error("Schema must have type 'object' and 'properties' field");
+        throw new Error(
+          "Schema must have type 'object' and 'properties' field"
+        );
       }
       schema = parsed as JsonSchema;
     } catch (error) {
@@ -84,68 +93,87 @@ export function CreateTrackerDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Create New Tracker</DialogTitle>
-          <DialogDescription>
-            Create a new tracker by providing a name and JSON schema for the
-            data fields.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Field>
-              <FieldLabel>Tracker Name</FieldLabel>
-              <FieldContent>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Smoking, Masturbation, Shower"
-                  required
-                />
-              </FieldContent>
-            </Field>
-
-            <Field>
-              <FieldLabel>JSON Schema</FieldLabel>
-              <FieldContent>
-                <Textarea
-                  value={schemaJson}
-                  onChange={(e) => setSchemaJson(e.target.value)}
-                  placeholder='{"type": "object", "properties": {}, "required": []}'
-                  className="min-h-64 font-mono text-xs"
-                  required
-                />
-                {schemaError && (
-                  <FieldError>{schemaError}</FieldError>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Define the structure of your tracker data using JSON Schema
-                  format.
-                </p>
-              </FieldContent>
-            </Field>
-          </div>
-
-          <DialogFooter className="mt-6">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
+          showCloseButton={false}
+        >
+          <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
+            <DialogTitle>Create New Tracker</DialogTitle>
+            <DialogDescription>
+              Create a new tracker by providing a name and JSON schema for the
+              data fields.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogClose asChild>
             <Button
               type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+              variant="ghost"
+              size="icon-sm"
+              className="absolute z-10 top-2 right-3"
               disabled={createTrackerMutation.isPending}
             >
-              Cancel
+              <XIcon />
+              <span className="sr-only">Close</span>
             </Button>
-            <Button
-              type="submit"
-              disabled={createTrackerMutation.isPending || !name.trim()}
-            >
-              {createTrackerMutation.isPending ? "Creating..." : "Create Tracker"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </DialogClose>
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="space-y-4">
+                <Field>
+                  <FieldLabel>Tracker Name</FieldLabel>
+                  <FieldContent>
+                    <Input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g., Smoking, Masturbation, Shower"
+                      required
+                    />
+                  </FieldContent>
+                </Field>
+
+                <Field>
+                  <FieldLabel>JSON Schema</FieldLabel>
+                  <FieldContent>
+                    <Textarea
+                      value={schemaJson}
+                      onChange={(e) => setSchemaJson(e.target.value)}
+                      placeholder='{"type": "object", "properties": {}, "required": []}'
+                      className="min-h-64 font-mono text-xs"
+                      required
+                    />
+                    {schemaError && <FieldError>{schemaError}</FieldError>}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Define the structure of your tracker data using JSON Schema
+                      format.
+                    </p>
+                  </FieldContent>
+                </Field>
+              </div>
+            </div>
+
+            <DialogFooter className="bottom-0 z-10 bg-background border-t border-border px-4 py-3 shrink-0 mt-0 relative">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={createTrackerMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createTrackerMutation.isPending || !name.trim()}
+              >
+                {createTrackerMutation.isPending
+                  ? "Creating..."
+                  : "Create Tracker"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

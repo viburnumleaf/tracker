@@ -91,8 +91,9 @@ export function LogEntriesListDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
+        showCloseButton={false}>
+          <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
             <DialogTitle>
               Log Entries: {tracker.name.replace(/_/g, " ")}
             </DialogTitle>
