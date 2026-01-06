@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // Constants
-const PINCH_THRESHOLD = 0.3; // 30% distance reduction to trigger
-const TOGGLE_DEBOUNCE_MS = 500; // Minimum time between toggles
-const REQUIRED_TOUCHES = 2; // Number of fingers for pinch gesture
+const LONG_PRESS_DURATION_MS = 1000; // 1 second long press required
+const TOGGLE_DEBOUNCE_MS = 1000; // Minimum time between toggles
+const REQUIRED_TOUCHES = 2; // Number of fingers for long press
+const MAX_MOVEMENT_PX = 10; // Maximum allowed movement during long press
 
 const MOBILE_USER_AGENTS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 
@@ -20,19 +21,17 @@ const isMobileDevice = (): boolean => {
 };
 
 /**
- * Calculates Euclidean distance between two touch points
+ * Calculates distance between two points
  */
-const calculateTouchDistance = (touch1: Touch, touch2: Touch): number => {
-  const deltaX = touch1.clientX - touch2.clientX;
-  const deltaY = touch1.clientY - touch2.clientY;
-  return Math.hypot(deltaX, deltaY);
+const getDistance = (x1: number, y1: number, x2: number, y2: number): number => {
+  return Math.hypot(x2 - x1, y2 - y1);
 };
 
 /**
  * Hook for managing admin mode toggle
  * 
  * Desktop: Toggles when CapsLock is pressed
- * Mobile: Toggles on pinch-in gesture (two fingers moving together)
+ * Mobile: Toggles on long press with two fingers simultaneously (hold for 1 second)
  * 
  * @returns {boolean} Current admin mode state
  */
@@ -40,9 +39,10 @@ export const useAdminMode = (): boolean => {
   const [isAdminMode, setIsAdminMode] = useState(false);
   
   // Refs for gesture tracking
-  const initialDistanceRef = useRef<number | null>(null);
-  const gestureActiveRef = useRef(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartPositionsRef = useRef<Array<{ x: number; y: number }> | null>(null);
   const lastToggleTimeRef = useRef(0);
+  const isGestureActiveRef = useRef(false);
 
   // Memoize mobile detection to avoid recalculation
   const isMobile = useMemo(() => isMobileDevice(), []);
@@ -56,11 +56,20 @@ export const useAdminMode = (): boolean => {
     }
   }, []);
 
+  // Clear long press timer
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
   // Reset gesture state
   const resetGestureState = useCallback(() => {
-    initialDistanceRef.current = null;
-    gestureActiveRef.current = false;
-  }, []);
+    clearLongPressTimer();
+    touchStartPositionsRef.current = null;
+    isGestureActiveRef.current = false;
+  }, [clearLongPressTimer]);
 
   // Desktop: CapsLock detection handlers
   const handleKeyDown = useCallback(
@@ -83,7 +92,7 @@ export const useAdminMode = (): boolean => {
     [isMobile]
   );
 
-  // Mobile: Pinch-in gesture handlers
+  // Mobile: Long press with two fingers handlers
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (!isMobile || e.touches.length !== REQUIRED_TOUCHES) {
@@ -91,34 +100,56 @@ export const useAdminMode = (): boolean => {
         return;
       }
 
-      const distance = calculateTouchDistance(e.touches[0], e.touches[1]);
-      initialDistanceRef.current = distance;
-      gestureActiveRef.current = true;
+      // Store initial touch positions
+      touchStartPositionsRef.current = Array.from(e.touches).map((touch) => ({
+        x: touch.clientX,
+        y: touch.clientY,
+      }));
+      isGestureActiveRef.current = true;
+
+      // Start long press timer
+      clearLongPressTimer();
+      longPressTimerRef.current = setTimeout(() => {
+        if (isGestureActiveRef.current && touchStartPositionsRef.current) {
+          toggleAdminMode();
+          resetGestureState();
+        }
+      }, LONG_PRESS_DURATION_MS);
     },
-    [isMobile, resetGestureState]
+    [isMobile, resetGestureState, clearLongPressTimer, toggleAdminMode]
   );
 
   const handleTouchMove = useCallback(
     (e: TouchEvent) => {
       if (
         !isMobile ||
-        !gestureActiveRef.current ||
+        !isGestureActiveRef.current ||
         e.touches.length !== REQUIRED_TOUCHES ||
-        initialDistanceRef.current === null
+        !touchStartPositionsRef.current
       ) {
         return;
       }
 
-      const currentDistance = calculateTouchDistance(e.touches[0], e.touches[1]);
-      const distanceReduction = initialDistanceRef.current - currentDistance;
-      const threshold = initialDistanceRef.current * PINCH_THRESHOLD;
+      // Check if fingers moved too much (cancel gesture)
+      const currentTouches = Array.from(e.touches);
+      const movedTooMuch = currentTouches.some((touch, index) => {
+        const startPos = touchStartPositionsRef.current![index];
+        if (!startPos) return true;
+        
+        const distance = getDistance(
+          startPos.x,
+          startPos.y,
+          touch.clientX,
+          touch.clientY
+        );
+        return distance > MAX_MOVEMENT_PX;
+      });
 
-      if (distanceReduction > threshold) {
-        toggleAdminMode();
+      if (movedTooMuch) {
         resetGestureState();
       }
     },
-    [isMobile, toggleAdminMode, resetGestureState]
+    [isMobile, resetGestureState]
   );
 
   const handleTouchEnd = useCallback(() => {
@@ -136,6 +167,7 @@ export const useAdminMode = (): boolean => {
       window.addEventListener("touchcancel", handleTouchEnd, options);
 
       return () => {
+        resetGestureState();
         window.removeEventListener("touchstart", handleTouchStart);
         window.removeEventListener("touchmove", handleTouchMove);
         window.removeEventListener("touchend", handleTouchEnd);
@@ -150,7 +182,7 @@ export const useAdminMode = (): boolean => {
         window.removeEventListener("keyup", handleKeyUp);
       };
     }
-  }, [isMobile, handleKeyDown, handleKeyUp, handleTouchStart, handleTouchMove, handleTouchEnd]);
+  }, [isMobile, handleKeyDown, handleKeyUp, handleTouchStart, handleTouchMove, handleTouchEnd, resetGestureState]);
 
   return isAdminMode;
 };
