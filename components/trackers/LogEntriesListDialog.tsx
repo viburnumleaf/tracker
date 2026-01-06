@@ -5,6 +5,7 @@ import { useLogEntries, useDeleteLogEntry, usePermanentlyDeleteLogEntry } from "
 import { useAdminMode } from "@/src/features/auth/hooks";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -13,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tracker, LogEntry } from "@/src/api/trackers/trackers.api";
-import { Trash2 } from "lucide-react";
+import { Trash2, XIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -91,8 +92,10 @@ export function LogEntriesListDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
-        showCloseButton={false}>
+        <DialogContent
+          className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
+          showCloseButton={false}
+        >
           <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
             <DialogTitle>
               Log Entries: {tracker.name.replace(/_/g, " ")}
@@ -110,56 +113,69 @@ export function LogEntriesListDialog({
               )}
             </DialogDescription>
           </DialogHeader>
+          <DialogClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="absolute top-2 z-10 right-3"
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </Button>
+          </DialogClose>
 
-          <div className="space-y-4 mt-4">
-            {isLoading ? (
-              <div className="text-muted-foreground text-sm">
-                Loading entries...
-              </div>
-            ) : entries.length === 0 ? (
-              <div className="text-muted-foreground text-sm">
-                No log entries yet. Create your first entry to get started!
-              </div>
-            ) : (
-              entries.map((entry) => {
-                const isDeleted = entry.isDeleted || false;
-                return (
-                  <Card
-                    key={entry._id}
-                    className={`p-4 ${
-                      isDeleted
-                        ? "opacity-50 border-dashed border-2 border-destructive"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(entry.createdAt).toLocaleString()}
+          <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+            <div className="space-y-4">
+              {isLoading ? (
+                <div className="text-muted-foreground text-sm">
+                  Loading entries...
+                </div>
+              ) : entries.length === 0 ? (
+                <div className="text-muted-foreground text-sm">
+                  No log entries yet. Create your first entry to get started!
+                </div>
+              ) : (
+                entries.map((entry) => {
+                  const isDeleted = entry.isDeleted || false;
+                  return (
+                    <Card
+                      key={entry._id}
+                      className={`p-4 ${
+                        isDeleted
+                          ? "opacity-50 border-dashed border-2 border-destructive"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(entry.createdAt).toLocaleString()}
+                            </div>
+                            {isDeleted && (
+                              <span className="text-xs text-destructive">(Deleted)</span>
+                            )}
                           </div>
-                          {isDeleted && (
-                            <span className="text-xs text-destructive">(Deleted)</span>
-                          )}
+                          <div className="text-sm">
+                            {formatEntryData(entry.data)}
+                          </div>
                         </div>
-                        <div className="text-sm">
-                          {formatEntryData(entry.data)}
-                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteClick(entry)}
+                          disabled={deleteLogEntryMutation.isPending || permanentlyDeleteLogEntryMutation.isPending}
+                          className="shrink-0"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteClick(entry)}
-                        disabled={deleteLogEntryMutation.isPending || permanentlyDeleteLogEntryMutation.isPending}
-                        className="shrink-0"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
