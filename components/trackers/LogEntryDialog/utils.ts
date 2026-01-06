@@ -159,6 +159,7 @@ export function convertISOToFormData(
 
 /**
  * Видаляє вкладені об'єкти, якщо їх dependsOn поле вимкнено
+ * АБО якщо вони мають createLinkedLog (вони будуть створені як окремі linked logs)
  */
 export function filterDisabledNestedObjects(
   data: LogEntryFormData,
@@ -169,13 +170,24 @@ export function filterDisabledNestedObjects(
   for (const [key, prop] of Object.entries(properties)) {
     if (prop.dependsOn && prop.type === "object") {
       const dependsOnValue = filteredData[prop.dependsOn];
+      const dependsOnProp = properties[prop.dependsOn];
+      
+      // Видаляємо вкладений об'єкт якщо:
+      // 1. dependsOn вимкнено (disabled)
+      // 2. dependsOn має createLinkedLog (буде створено як linked log, не має бути в основному логу)
       if (
         !dependsOnValue ||
         dependsOnValue === false ||
-        dependsOnValue === ""
+        dependsOnValue === "" ||
+        dependsOnProp?.createLinkedLog
       ) {
         delete filteredData[key];
       }
+    }
+    
+    // Також видаляємо поля типу boolean з createLinkedLog (вони не мають бути в даних)
+    if (prop.type === "boolean" && prop.createLinkedLog) {
+      delete filteredData[key];
     }
   }
 
