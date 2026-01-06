@@ -1,20 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useCreateLogEntry, useTrackers } from "@/src/features/trackers/hooks";
 import { useAdminMode } from "@/src/features/auth/hooks";
 import { useCreateDraft, useDeleteDraft } from "@/src/features/drafts/hooks";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogLayout } from "../DialogLayout";
+import { useLinkedDialog } from "../hooks";
 import { Button } from "@/components/ui/button";
-import { XIcon, Link2 } from "lucide-react";
+import { Link2 } from "lucide-react";
 import { FieldError, Field, FieldContent, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Tracker } from "@/src/api/trackers/trackers.api";
@@ -44,10 +37,13 @@ export function LogEntryDialog({
   const deleteDraftMutation = useDeleteDraft();
   const isAdminMode = useAdminMode();
   const { trackers } = useTrackers(false);
-  const [linkedTrackerDialogOpen, setLinkedTrackerDialogOpen] = useState(false);
-  const [selectedLinkedTracker, setSelectedLinkedTracker] =
-    useState<Tracker | null>(null);
-  const [adminCreatedAt, setAdminCreatedAt] = useState<string>("");
+  
+  // Default value for admin createdAt field
+  const defaultAdminCreatedAt = useMemo(
+    () => (open && isAdminMode ? convertISOToDateTimeLocal(new Date().toISOString()) : ""),
+    [open, isAdminMode]
+  );
+  const [adminCreatedAt, setAdminCreatedAt] = useState<string>(defaultAdminCreatedAt);
 
   const {
     formData,
@@ -65,6 +61,13 @@ export function LogEntryDialog({
     clearLocalStorage,
   } = useLogEntryForm({ tracker, open, draft });
 
+  const {
+    linkedDialogOpen,
+    selectedItem: selectedLinkedTracker,
+    openLinkedDialog,
+    handleOpenChange: handleLinkedDialogChange,
+  } = useLinkedDialog<Tracker>();
+
   // Автоматичне заповнення вкладених об'єктів
   useNestedObjectAutoFill({
     tracker,
@@ -79,17 +82,15 @@ export function LogEntryDialog({
     isAdminMode,
   });
 
-  // Ініціалізація та очищення createdAt поля
+  // Синхронізація значення за замовчуванням при відкритті/закритті
   useEffect(() => {
     if (open && isAdminMode) {
-      // Встановлюємо поточну дату та час за замовчуванням при відкритті
-      const defaultDateTime = convertISOToDateTimeLocal(new Date().toISOString());
-      setAdminCreatedAt(defaultDateTime);
+      setAdminCreatedAt(defaultAdminCreatedAt);
     } else if (!open) {
-      // Очищаємо поле при закритті діалогу
       setAdminCreatedAt("");
     }
-  }, [open, isAdminMode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,7 +101,7 @@ export function LogEntryDialog({
 
     try {
       const finalData = prepareFormDataForSubmit();
-      
+
       // Конвертуємо datetime-local в ISO, якщо адмін вказав createdAt
       let createdAt: string | undefined = undefined;
       if (isAdminMode && adminCreatedAt) {
@@ -109,32 +110,29 @@ export function LogEntryDialog({
           createdAt = date.toISOString();
         }
       }
-      
+
       await createLogEntryMutation.mutateAsync({
         trackerId: tracker._id,
         data: finalData,
         customEnumValues: customEnumValues,
         createdAt: createdAt,
       });
-      
+
       // Якщо форма була відкрита з драфтом, видаляємо його
       if (draft?._id) {
         try {
           await deleteDraftMutation.mutateAsync(draft._id);
         } catch (error) {
           console.error("Failed to delete draft:", error);
-          // Не блокуємо закриття форми, якщо видалення драфту не вдалося
         }
       }
-      
-      // Очищаємо форму перед закриттям
+
       resetForm();
       setAdminCreatedAt("");
       onOpenChange(false);
     } catch (error: unknown) {
       console.error("Failed to create log entry:", error);
 
-      // Extract error message and field errors from axios error
       let errorMessage = "Failed to create log entry";
       let errors: Record<string, string[]> = {};
 
@@ -157,8 +155,7 @@ export function LogEntryDialog({
 
   const handleLinkedTrackerClick = (linkedTracker: Tracker | null) => {
     if (linkedTracker) {
-      setSelectedLinkedTracker(linkedTracker);
-      setLinkedTrackerDialogOpen(true);
+      openLinkedDialog(linkedTracker);
     }
   };
 
@@ -172,7 +169,6 @@ export function LogEntryDialog({
         data: finalData,
         customEnumValues: customEnumValues,
       });
-      // Optionally show a success message or close the dialog
     } catch (error) {
       console.error("Failed to save draft:", error);
     }
@@ -191,23 +187,61 @@ export function LogEntryDialog({
 
   // Сортуємо поля: спочатку базові, потім залежні (які використовують dynamicCount)
   const sortedFields = fields.sort(([keyA, propA], [keyB, propB]) => {
-    // Якщо поле B залежить від поля A, A має бути перед B
     if (propB.dynamicCount === keyA) return -1;
     if (propA.dynamicCount === keyB) return 1;
     return 0;
   });
 
+  const isLoading =
+    createLogEntryMutation.isPending || createDraftMutation.isPending;
+
+  const footer = (
+    <>
+      {validationError && <FieldError>{validationError}</FieldError>}
+      <div className="flex items-center justify-between gap-2 flex-1">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={isLoading}
+          >
+            Reset
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={isLoading}
+            className="hue-rotate-180"
+          >
+            {createDraftMutation.isPending ? "Saving..." : "Save Draft"}
+          </Button>
+          <Button type="submit" form="log-entry-form" disabled={isLoading}>
+            {createLogEntryMutation.isPending ? "Saving..." : "Save Entry"}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
-        showCloseButton={false}
-      >
-        <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
-          <DialogTitle>Log Entry: {tracker.name}</DialogTitle>
-          <DialogDescription>Add a new entry to this tracker.</DialogDescription>
-          {isAdminMode && (
-            <div className="mt-2 p-2 bg-muted rounded-md">
+    <>
+      <DialogLayout
+        open={open}
+        onOpenChange={onOpenChange}
+        title={`Log Entry: ${tracker.name}`}
+        description="Add a new entry to this tracker."
+        headerContent={
+          isAdminMode && (
+            <div className="p-2 bg-muted rounded-md">
               <div className="text-xs font-medium mb-1 flex items-center gap-1">
                 <Link2 className="size-3" />
                 Tracker links:
@@ -217,136 +251,67 @@ export function LogEntryDialog({
                 onLinkedTrackerClick={handleLinkedTrackerClick}
               />
             </div>
+          )
+        }
+        footer={footer}
+        isLoading={isLoading}
+      >
+        <form id="log-entry-form" onSubmit={handleSubmit} className="space-y-4">
+          {isAdminMode && (
+            <Field>
+              <FieldLabel>Created At (Admin)</FieldLabel>
+              <FieldContent>
+                <Input
+                  type="datetime-local"
+                  value={adminCreatedAt}
+                  onChange={(e) => setAdminCreatedAt(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set custom creation date and time (admin only)
+                </p>
+              </FieldContent>
+            </Field>
           )}
-          <DialogClose asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="absolute top-2 right-3"
-              disabled={createLogEntryMutation.isPending}
-            >
-              <XIcon />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogClose>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-4">
-              {isAdminMode && (
-                <Field>
-                  <FieldLabel>
-                    Created At (Admin)
-                  </FieldLabel>
-                  <FieldContent>
-                    <Input
-                      type="datetime-local"
-                      value={adminCreatedAt}
-                      onChange={(e) => setAdminCreatedAt(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Set custom creation date and time (admin only)
-                    </p>
-                  </FieldContent>
-                </Field>
-              )}
-              {sortedFields.map(([key, prop]) => {
-                const fieldElement = (
-                  <FormFieldRenderer
-                    key={key}
-                    fieldKey={key}
-                    prop={prop}
-                    value={formData[key]}
-                    formData={formData}
-                    fieldErrors={fieldErrors}
-                    customEnumValues={customEnumValues}
-                    customInputStates={customInputStates}
-                    tracker={tracker}
-                    allTrackers={trackers}
-                    onUpdateField={updateField}
-                    onSetCustomEnumValues={setCustomEnumValues}
-                    onSetCustomInputStates={setCustomInputStates}
-                  />
-                );
+          {sortedFields.map(([key, prop]) => {
+            const fieldElement = (
+              <FormFieldRenderer
+                key={key}
+                fieldKey={key}
+                prop={prop}
+                value={formData[key]}
+                formData={formData}
+                fieldErrors={fieldErrors}
+                customEnumValues={customEnumValues}
+                customInputStates={customInputStates}
+                tracker={tracker}
+                allTrackers={trackers}
+                onUpdateField={updateField}
+                onSetCustomEnumValues={setCustomEnumValues}
+                onSetCustomInputStates={setCustomInputStates}
+              />
+            );
 
-                // Якщо поле не має показуватися, не рендеримо його
-                if (!fieldElement) {
-                  return null;
-                }
+            if (!fieldElement) {
+              return null;
+            }
 
-                // Якщо поле залежить від іншого поля і воно активне, обгортаємо в Card
-                if (prop.dependsOn && formData[prop.dependsOn]) {
-                  // const dependsOnProp = tracker?.schema.properties?.[prop.dependsOn];
-                  return (
-                    <div key={key} >
-                      {/* <CardContent className=" space-y-4"> */}
-                        {/* <div className="text-sm font-medium text-muted-foreground mb-2">
-                          {dependsOnProp?.title || prop.dependsOn} - Settings
-                        </div> */}
-                      {/* </CardContent> */}
-                        {fieldElement}
-                    </div>
-                  );
-                }
+            if (prop.dependsOn && formData[prop.dependsOn]) {
+              return <div key={key}>{fieldElement}</div>;
+            }
 
-                return fieldElement;
-              })}
-            </div>
-          </div>
-
-          <DialogFooter className="bottom-0 z-10 bg-background border-t border-border px-4 py-3 shrink-0 mt-0 relative">
-            <div className="flex flex-col justify-between gap-4 flex-1">
-              {validationError && <FieldError>{validationError}</FieldError>}
-              <div className="flex items-center justify-between gap-2 flex-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                  disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
-                >
-                  Cancel
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleReset}
-                    disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSaveDraft}
-                    disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}
-                    className="hue-rotate-180"
-                  >
-                    {createDraftMutation.isPending ? "Saving..." : "Save Draft"}
-                  </Button>
-                  <Button type="submit" disabled={createLogEntryMutation.isPending || createDraftMutation.isPending}>
-                    {createLogEntryMutation.isPending ? "Saving..." : "Save Entry"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </DialogFooter>
+            return fieldElement;
+          })}
         </form>
-      </DialogContent>
+      </DialogLayout>
 
       {/* Linked Tracker Dialog */}
       {selectedLinkedTracker && (
         <LogEntryDialog
-          open={linkedTrackerDialogOpen}
-          onOpenChange={(open) => {
-            setLinkedTrackerDialogOpen(open);
-            if (!open) {
-              setSelectedLinkedTracker(null);
-            }
-          }}
+          open={linkedDialogOpen}
+          onOpenChange={handleLinkedDialogChange}
           tracker={selectedLinkedTracker}
         />
       )}
-    </Dialog>
+    </>
   );
 }

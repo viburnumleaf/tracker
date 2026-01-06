@@ -1,16 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useUpdateTracker } from "@/src/features/trackers/hooks";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DialogLayout } from "./DialogLayout";
+import { useSchemaForm } from "./hooks";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,8 +11,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { JsonSchema, Tracker } from "@/src/api/trackers/trackers.api";
-import { XIcon } from "lucide-react";
+import { Tracker } from "@/src/api/trackers/trackers.api";
 
 interface EditTrackerDialogProps {
   open: boolean;
@@ -33,45 +24,19 @@ export function EditTrackerDialog({
   onOpenChange,
   tracker,
 }: EditTrackerDialogProps) {
-  const [schemaJson, setSchemaJson] = useState("");
-  const [schemaError, setSchemaError] = useState<string | null>(null);
-
   const updateTrackerMutation = useUpdateTracker();
-
-  // Initialize schema when tracker changes
-  useEffect(() => {
-    if (tracker && open) {
-      setSchemaJson(JSON.stringify(tracker.schema, null, 2));
-      setSchemaError(null);
-    } else if (!open) {
-      // Reset when dialog closes
-      setSchemaJson("");
-      setSchemaError(null);
-    }
-  }, [tracker?._id, open]);
+  const { schemaJson, setSchemaJson, schemaError, validateSchema } =
+    useSchemaForm({
+      initialSchema: tracker?.schema,
+      open: open && !!tracker,
+    });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tracker) return;
 
-    setSchemaError(null);
-
-    let schema: JsonSchema;
-    try {
-      const parsed = JSON.parse(schemaJson);
-      // Basic validation
-      if (parsed.type !== "object" || !parsed.properties) {
-        throw new Error(
-          "Schema must have type 'object' and 'properties' field"
-        );
-      }
-      schema = parsed as JsonSchema;
-    } catch (error) {
-      setSchemaError(
-        error instanceof Error ? error.message : "Invalid JSON schema"
-      );
-      return;
-    }
+    const schema = validateSchema();
+    if (!schema) return;
 
     try {
       await updateTrackerMutation.mutateAsync({
@@ -81,86 +46,58 @@ export function EditTrackerDialog({
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to update tracker:", error);
-      setSchemaError(
-        error instanceof Error
-          ? error.message
-          : "Failed to update tracker schema"
-      );
     }
   };
 
   if (!tracker) return null;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-2xl h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0"
-        showCloseButton={false}
+  const footer = (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => onOpenChange(false)}
+        disabled={updateTrackerMutation.isPending}
       >
-        <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
-          <DialogTitle>
-            Edit Tracker Schema: {tracker.name.replace(/_/g, " ")}
-          </DialogTitle>
-          <DialogDescription>
-            Update the JSON schema for this tracker. Changes will affect all
-            users of this tracker.
-          </DialogDescription>
-        </DialogHeader>
-        <DialogClose asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="absolute top-2 z-10 right-3"
-            disabled={updateTrackerMutation.isPending}
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </Button>
-        </DialogClose>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col flex-1 min-h-0"
-        >
-          <div className="flex-1 overflow-y-auto px-4 py-4">
-            <div className="space-y-4">
-              <Field>
-                <FieldLabel>JSON Schema</FieldLabel>
-                <FieldContent>
-                  <Textarea
-                    value={schemaJson}
-                    onChange={(e) => setSchemaJson(e.target.value)}
-                    placeholder='{"type": "object", "properties": {}, "required": []}'
-                    className="min-h-64 font-mono text-xs"
-                    required
-                  />
-                  {schemaError && <FieldError>{schemaError}</FieldError>}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Define the structure of your tracker data using JSON Schema
-                    format.
-                  </p>
-                </FieldContent>
-              </Field>
-            </div>
-          </div>
+        Cancel
+      </Button>
+      <Button
+        type="submit"
+        form="edit-tracker-form"
+        disabled={updateTrackerMutation.isPending}
+      >
+        {updateTrackerMutation.isPending ? "Updating..." : "Update Schema"}
+      </Button>
+    </>
+  );
 
-          <DialogFooter className="bottom-0 z-10 bg-background border-t border-border px-4 py-3 shrink-0 mt-0 relative">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={updateTrackerMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateTrackerMutation.isPending}>
-              {updateTrackerMutation.isPending
-                ? "Updating..."
-                : "Update Schema"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+  return (
+    <DialogLayout
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`Edit Tracker Schema: ${tracker.name.replace(/_/g, " ")}`}
+      description="Update the JSON schema for this tracker. Changes will affect all users of this tracker."
+      footer={footer}
+      isLoading={updateTrackerMutation.isPending}
+    >
+      <form id="edit-tracker-form" onSubmit={handleSubmit} className="space-y-4">
+        <Field>
+          <FieldLabel>JSON Schema</FieldLabel>
+          <FieldContent>
+            <Textarea
+              value={schemaJson}
+              onChange={(e) => setSchemaJson(e.target.value)}
+              placeholder='{"type": "object", "properties": {}, "required": []}'
+              className="min-h-64 font-mono text-xs"
+              required
+            />
+            {schemaError && <FieldError>{schemaError}</FieldError>}
+            <p className="text-xs text-muted-foreground mt-1">
+              Define the structure of your tracker data using JSON Schema format.
+            </p>
+          </FieldContent>
+        </Field>
+      </form>
+    </DialogLayout>
   );
 }
