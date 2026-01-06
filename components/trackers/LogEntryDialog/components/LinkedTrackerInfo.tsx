@@ -2,15 +2,15 @@ import { Link2 } from "lucide-react";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 import { LinkedTrackerInfo as LinkedTrackerInfoType } from "../types";
 
-interface LinkedTrackerInfoProps {
+type LinkedTrackerInfoProps = {
   linkedTrackerInfo: LinkedTrackerInfoType[] | null;
   onLinkedTrackerClick: (linkedTracker: Tracker | null) => void;
 }
 
-export function LinkedTrackerInfo({
+export const LinkedTrackerInfo = ({
   linkedTrackerInfo,
   onLinkedTrackerClick,
-}: LinkedTrackerInfoProps) {
+}: LinkedTrackerInfoProps) => {
   if (!linkedTrackerInfo || linkedTrackerInfo.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">

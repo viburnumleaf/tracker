@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface DeleteConfirmDialogProps {
+type DeleteConfirmDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -22,7 +22,7 @@ interface DeleteConfirmDialogProps {
   variant?: "default" | "destructive";
 }
 
-export function DeleteConfirmDialog({
+export const DeleteConfirmDialog = ({
   open,
   onOpenChange,
   title,
@@ -31,7 +31,7 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
   variant = "default",
-}: DeleteConfirmDialogProps) {
+}: DeleteConfirmDialogProps) => {
   const handleConfirm = async () => {
     await onConfirm();
   };

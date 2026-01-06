@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { JsonSchema } from "@/src/api/trackers/trackers.api";
 
-interface UseSchemaFormOptions {
+type UseSchemaFormOptions = {
   initialSchema?: JsonSchema;
   open?: boolean;
 }
 
-interface UseSchemaFormReturn {
+type UseSchemaFormReturn = {
   schemaJson: string;
   setSchemaJson: (value: string) => void;
   schemaError: string | null;
@@ -20,10 +20,10 @@ const DEFAULT_SCHEMA: JsonSchema = {
   required: [],
 };
 
-export function useSchemaForm({
+export const useSchemaForm = ({
   initialSchema,
   open,
-}: UseSchemaFormOptions = {}): UseSchemaFormReturn {
+}: UseSchemaFormOptions = {}): UseSchemaFormReturn => {
   const [schemaJson, setSchemaJson] = useState(() =>
     JSON.stringify(initialSchema || DEFAULT_SCHEMA, null, 2)
   );

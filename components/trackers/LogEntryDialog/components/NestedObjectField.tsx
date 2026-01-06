@@ -7,7 +7,7 @@ import { shouldShowField } from "../utils";
 import { FormFieldRenderer } from "./FormFieldRenderer";
 import { useMemo } from "react";
 
-interface NestedObjectFieldProps {
+type NestedObjectFieldProps = {
   fieldKey: string;
   prop: JsonSchemaProperty;
   value: unknown;
@@ -24,7 +24,7 @@ interface NestedObjectFieldProps {
   onSetCustomInputStates: React.Dispatch<React.SetStateAction<CustomInputStates>>;
 }
 
-export function NestedObjectField({
+export const NestedObjectField = ({
   fieldKey,
   prop,
   value,
@@ -39,12 +39,12 @@ export function NestedObjectField({
   onUpdateField,
   onSetCustomEnumValues,
   onSetCustomInputStates,
-}: NestedObjectFieldProps) {
-  // Якщо схема порожня, спробуємо підтягнути схему з трекера через createLinkedLog
+}: NestedObjectFieldProps) => {
+  // If the schema is empty, try to load the schema from the tracker through createLinkedLog
   const nestedProperties = useMemo(() => {
     const propsFromSchema = prop.properties || {};
     
-    // Якщо properties порожній і є dependsOn, шукаємо createLinkedLog на залежному полі
+    // If properties is empty and there is dependsOn, look for createLinkedLog on the dependent field
     if (Object.keys(propsFromSchema).length === 0 && prop.dependsOn && tracker) {
       const dependsOnProp = tracker.schema.properties?.[prop.dependsOn];
       if (dependsOnProp?.createLinkedLog?.trackerName) {
@@ -65,7 +65,7 @@ export function NestedObjectField({
     return propsFromSchema;
   }, [prop.properties, prop.dependsOn, tracker, allTrackers]);
 
-  // Перевірка залежності вкладеного об'єкта від іншого поля
+  // Check if the nested object depends on another field
   if (prop.dependsOn && !shouldShowField(prop, formData)) {
     return null;
   }

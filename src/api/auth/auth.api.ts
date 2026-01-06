@@ -2,18 +2,18 @@ import { apiClient } from "../client";
 import { AxiosResponse } from "axios";
 
 // Types
-export interface LoginCredentials {
+export type LoginCredentials = {
   email: string;
   password: string;
 }
 
-export interface RegisterCredentials {
+export type RegisterCredentials = {
   email: string;
   password: string;
   name: string;
 }
 
-export interface AuthResponse {
+export type AuthResponse = {
   user: {
     id: string;
     email: string;
@@ -24,7 +24,7 @@ export interface AuthResponse {
   };
 }
 
-export interface Session {
+export type Session = {
   user?: {
     id: string;
     email: string;
@@ -36,7 +36,7 @@ export interface Session {
   };
 }
 
-export interface User {
+export type User = {
   _id: string;
   name: string;
   emailVerified: boolean;

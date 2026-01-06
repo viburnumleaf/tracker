@@ -10,7 +10,7 @@ export const createDraftEntrySchema = z.object({
 
 export type CreateDraftEntryDto = z.infer<typeof createDraftEntrySchema>;
 
-export interface DraftEntry {
+export type DraftEntry = {
   _id: string;
   userId: string;
   trackerId: string;

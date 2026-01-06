@@ -1,11 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 
-interface UseDialogOptions {
+type UseDialogOptions = {
   onOpenChange?: (open: boolean) => void;
   resetOnClose?: boolean;
 }
 
-interface UseDialogReturn {
+type UseDialogReturn = {
   open: boolean;
   setOpen: (open: boolean) => void;
   handleOpen: () => void;
@@ -13,10 +13,10 @@ interface UseDialogReturn {
   handleOpenChange: (open: boolean) => void;
 }
 
-export function useDialog({
+export const useDialog = ({
   onOpenChange,
   resetOnClose = false,
-}: UseDialogOptions = {}): UseDialogReturn {
+}: UseDialogOptions = {}): UseDialogReturn => {
   const [open, setOpenState] = useState(false);
 
   const setOpen = useCallback(

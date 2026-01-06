@@ -14,13 +14,13 @@ import {
 } from "../utils";
 import { DraftEntry } from "@/src/api/drafts/drafts.api";
 
-interface UseLogEntryFormProps {
+type UseLogEntryFormProps = {
   tracker: Tracker | null;
   open: boolean;
   draft?: DraftEntry | null;
 }
 
-interface UseLogEntryFormReturn {
+type UseLogEntryFormReturn = {
   formData: LogEntryFormData;
   customEnumValues: CustomEnumValues;
   customInputStates: CustomInputStates;
@@ -36,11 +36,11 @@ interface UseLogEntryFormReturn {
   clearLocalStorage: () => void;
 }
 
-export function useLogEntryForm({
+export const useLogEntryForm = ({
   tracker,
   open,
   draft,
-}: UseLogEntryFormProps): UseLogEntryFormReturn {
+}: UseLogEntryFormProps): UseLogEntryFormReturn => {
   const [formData, setFormData] = useState<LogEntryFormData>({});
   const [customEnumValues, setCustomEnumValues] = useState<CustomEnumValues>(
     {}
@@ -51,13 +51,13 @@ export function useLogEntryForm({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
-  // Ключ для localStorage
+  // Storage key for localStorage
   const getStorageKey = useCallback(() => {
     if (!tracker || !tracker._id) return null;
     return `log_entry_draft_${tracker._id}`;
-  }, [tracker?._id]);
+  }, [tracker?._id, tracker]);
 
-  // Збереження форми в localStorage при зміні
+  // Saving form to localStorage when it changes
   useEffect(() => {
     if (!open || !tracker) return;
     const storageKey = getStorageKey();
@@ -76,7 +76,7 @@ export function useLogEntryForm({
     }
   }, [formData, customEnumValues, customInputStates, open, tracker, getStorageKey]);
 
-  // Очищення localStorage при закритті форми
+  // Clearing localStorage when the form is closed
   useEffect(() => {
     if (!open && tracker) {
       const storageKey = getStorageKey();
@@ -90,7 +90,7 @@ export function useLogEntryForm({
     }
   }, [open, tracker, getStorageKey]);
 
-  // Ініціалізація форми з чернетки, localStorage або defaults
+  // Initialize form from draft, localStorage or defaults
   useEffect(() => {
     if (open && tracker) {
       const storageKey = getStorageKey();
@@ -100,10 +100,10 @@ export function useLogEntryForm({
         customInputStates: CustomInputStates;
       } | null = null;
 
-      // Спочатку перевіряємо, чи є чернетка з пропсів
+      // First check if there is a draft with properties
       if (draft) {
         const properties = tracker.schema.properties || {};
-        // Конвертуємо ISO дані назад в формат форми
+        // Convert ISO data back to form format
         const draftFormData = convertISOToFormData(draft.data, properties);
         loadedData = {
           formData: draftFormData,
@@ -111,7 +111,7 @@ export function useLogEntryForm({
           customInputStates: {},
         };
       } else {
-        // Спробуємо завантажити з localStorage
+        // Try to load from localStorage
         if (storageKey) {
           try {
             const stored = localStorage.getItem(storageKey);
@@ -128,17 +128,17 @@ export function useLogEntryForm({
       let initialData: LogEntryFormData;
       
       if (loadedData?.formData) {
-        // Якщо є завантажені дані, об'єднуємо їх з defaults для полів, яких немає
+        // If there is loaded data, merge it with defaults for fields that don't exist
         const defaultData = initializeFormData(properties);
         initialData = { ...defaultData, ...loadedData.formData };
       } else {
-        // Якщо немає завантажених даних, використовуємо тільки defaults
+        // If there is no loaded data, use only defaults
         initialData = initializeFormData(properties);
       }
       
       setFormData(initialData);
 
-      // Ініціалізуємо кастомні значення enum
+      // Initialize custom enum values
       if (loadedData?.customEnumValues) {
         setCustomEnumValues(loadedData.customEnumValues);
       } else {
@@ -165,7 +165,7 @@ export function useLogEntryForm({
       setValidationError(null);
       setFieldErrors({});
       
-      // Очищаємо кастомні значення enum
+      // Clear custom enum values
       const customValues: CustomEnumValues = {};
       for (const [key, prop] of Object.entries(properties)) {
         if (prop.enum && prop.type === "string") {
@@ -188,16 +188,16 @@ export function useLogEntryForm({
     }
   }, [tracker?._id, tracker]);
 
-  // Оновлення поля з підтримкою вкладених ключів та dynamicCount
+  // Update field with support for nested keys and dynamicCount
   const updateField = useCallback(
     (key: string, value: unknown) => {
       setFormData((prev) => {
-        // Обробка вкладених ключів (наприклад, "metadata.source")
+        // Handle nested keys (e.g., "metadata.source")
         if (key.includes(".")) {
           const [parentKey, ...nestedKeys] = key.split(".");
           const parentValue = (prev[parentKey] as Record<string, unknown>) || {};
 
-          // Рекурсивно оновлюємо вкладений об'єкт
+          // Recursively update nested object
           const updateNested = (
             obj: Record<string, unknown>,
             path: string[],
@@ -220,7 +220,7 @@ export function useLogEntryForm({
           const updatedParent = updateNested(parentValue, nestedKeys, value);
           const newData = { ...prev, [parentKey]: updatedParent };
 
-          // Обробка dynamicCount для вкладених полів
+          // Handle dynamicCount for nested fields
           const properties = tracker?.schema.properties || {};
           for (const [fieldKey, prop] of Object.entries(properties)) {
             if (prop.dynamicCount === key && prop.type === "array") {
@@ -246,7 +246,7 @@ export function useLogEntryForm({
 
         const newData = { ...prev, [key]: value };
 
-        // Якщо змінюється поле, яке використовується для dynamicCount, оновлюємо масив
+        // If the field that is used for dynamicCount is changed, update the array
         const properties = tracker?.schema.properties || {};
         for (const [fieldKey, prop] of Object.entries(properties)) {
           if (prop.dynamicCount === key && prop.type === "array") {
@@ -257,10 +257,10 @@ export function useLogEntryForm({
               ? initializeFormData({ temp: itemSchema }).temp
               : "";
 
-            // Створюємо новий масив потрібного розміру
+            // Create a new array of the required size
             const newArray: unknown[] = [];
             for (let i = 0; i < count; i++) {
-              // Якщо є старе значення, використовуємо його, інакше - default
+              // If there is an old value, use it, otherwise - default
               newArray[i] =
                 currentArray[i] !== undefined ? currentArray[i] : defaultValue;
             }
@@ -275,7 +275,7 @@ export function useLogEntryForm({
     [tracker]
   );
 
-  // Підготовка даних для відправки
+  // Prepare data for submission
   const prepareFormDataForSubmit = useCallback((): LogEntryFormData => {
     if (!tracker) return {};
 

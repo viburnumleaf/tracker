@@ -19,19 +19,19 @@ import { LinkedTrackerInfo } from "./components/LinkedTrackerInfo";
 import { FormFieldRenderer } from "./components/FormFieldRenderer";
 import { convertISOToDateTimeLocal } from "./utils";
 
-interface LogEntryDialogProps {
+type LogEntryDialogProps = { 
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tracker: Tracker | null;
   draft?: DraftEntry | null;
 }
 
-export function LogEntryDialog({
+export const LogEntryDialog = ({
   open,
   onOpenChange,
   tracker,
   draft,
-}: LogEntryDialogProps) {
+}: LogEntryDialogProps) => {
   const createLogEntryMutation = useCreateLogEntry();
   const createDraftMutation = useCreateDraft();
   const deleteDraftMutation = useDeleteDraft();

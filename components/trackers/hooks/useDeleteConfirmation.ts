@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
 
-interface UseDeleteConfirmationOptions<T> {
+type UseDeleteConfirmationOptions<T> = {
   onConfirm: (item: T) => Promise<void>;
 }
 
-interface UseDeleteConfirmationReturn<T> {
+type UseDeleteConfirmationReturn<T> = {
   deleteConfirmOpen: boolean;
   itemToDelete: T | null;
   handleDeleteClick: (item: T) => void;
@@ -12,9 +12,9 @@ interface UseDeleteConfirmationReturn<T> {
   handleDeleteCancel: () => void;
 }
 
-export function useDeleteConfirmation<T>({
+export const useDeleteConfirmation = <T,>({
   onConfirm,
-}: UseDeleteConfirmationOptions<T>): UseDeleteConfirmationReturn<T> {
+}: UseDeleteConfirmationOptions<T>): UseDeleteConfirmationReturn<T> => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<T | null>(null);
 

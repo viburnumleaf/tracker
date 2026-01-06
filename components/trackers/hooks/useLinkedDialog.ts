@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-interface UseLinkedDialogReturn<T> {
+type UseLinkedDialogReturn<T> = {
   linkedDialogOpen: boolean;
   selectedItem: T | null;
   openLinkedDialog: (item: T) => void;
@@ -8,7 +8,7 @@ interface UseLinkedDialogReturn<T> {
   handleOpenChange: (open: boolean) => void;
 }
 
-export function useLinkedDialog<T>(): UseLinkedDialogReturn<T> {
+export const useLinkedDialog = <T,>(): UseLinkedDialogReturn<T> => {
   const [linkedDialogOpen, setLinkedDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<T | null>(null);
 

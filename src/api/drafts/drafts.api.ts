@@ -1,7 +1,7 @@
 import { AxiosResponse } from "axios";
 import { apiClient } from "@/src/api/client";
 
-export interface DraftEntry {
+export type DraftEntry = {
   _id: string;
   userId: string;
   trackerId: string;
@@ -11,13 +11,13 @@ export interface DraftEntry {
   updatedAt: string;
 }
 
-export interface CreateDraftEntryRequest {
+export type CreateDraftEntryRequest = {
   trackerId: string;
   data: Record<string, unknown>;
   customEnumValues?: Record<string, string[]>;
 }
 
-export interface UpdateDraftEntryRequest {
+export type UpdateDraftEntryRequest = {
   trackerId: string;
   data: Record<string, unknown>;
   customEnumValues?: Record<string, string[]>;

@@ -4,7 +4,7 @@ import { Field, FieldContent, FieldLabel, FieldError } from "@/components/ui/fie
 import { Switch } from "@/components/ui/switch";
 import { convertISOToDateTimeLocal } from "../utils";
 
-interface InputFieldProps {
+type InputFieldProps = {
   fieldKey: string;
   prop: JsonSchemaProperty;
   value: unknown;
@@ -14,22 +14,22 @@ interface InputFieldProps {
   renderCustomInput?: () => React.ReactNode;
 }
 
-export function InputField({
+export const InputField = ({
   fieldKey,
   prop,
   value,
   errors,
   isRequired,
-  onUpdateField,
+  onUpdateField,  
   renderCustomInput,
-}: InputFieldProps) {
+}: InputFieldProps) => {
   const updateValue = (newValue: unknown) => {
     if (onUpdateField) {
       onUpdateField(fieldKey, newValue);
     }
   };
 
-  // Якщо є кастомний рендерер, використовуємо його
+  // If there is a custom renderer, use it
   if (renderCustomInput) {
     return (
       <Field key={fieldKey}>
@@ -50,9 +50,9 @@ export function InputField({
     );
   }
 
-  // Обробка різних форматів та типів
+  // Handle different formats and types
   if (prop.format === "date-time") {
-    // Конвертуємо ISO значення в datetime-local формат для відображення
+    // Convert ISO value to datetime-local format for display
     const displayValue = convertISOToDateTimeLocal(value);
     
     return (

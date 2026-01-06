@@ -1,34 +1,34 @@
 import { Tracker, JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
 
-export interface LogEntryFormData {
+export type LogEntryFormData = {
   [key: string]: unknown;
 }
 
-export interface CustomEnumValues {
+export type CustomEnumValues = {
   [key: string]: string[];
 }
 
-export interface CustomInputState {
+export type CustomInputState = {
   show: boolean;
   value: string;
 }
 
-export interface CustomInputStates {
+export type CustomInputStates = {
   [key: string]: CustomInputState;
 }
 
-export interface FieldErrors {
+export type FieldErrors = {
   [key: string]: string[];
 }
 
-export interface LinkedTrackerInfo {
+export type LinkedTrackerInfo = {
   fieldName: string;
   fieldTitle: string;
   linkedTrackerName: string;
   linkedTracker: Tracker | null;
 }
 
-export interface FormFieldProps {
+export type FormFieldProps = {
   fieldKey: string;
   prop: JsonSchemaProperty;
   value: unknown;

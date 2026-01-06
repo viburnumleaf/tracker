@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { InputField } from "./InputField";
 import { inputRegistry } from "@/src/lib/input-registry";
 
-interface DynamicArrayFieldProps {
+type DynamicArrayFieldProps = {
   fieldKey: string;
   prop: JsonSchemaProperty;
   value: unknown;
@@ -17,7 +17,7 @@ interface DynamicArrayFieldProps {
   onUpdateField: (key: string, value: unknown) => void;
 }
 
-export function DynamicArrayField({
+export const DynamicArrayField = ({
   fieldKey,
   prop,
   value,
@@ -26,7 +26,7 @@ export function DynamicArrayField({
   isRequired,
   tracker,
   onUpdateField,
-}: DynamicArrayFieldProps) {
+}: DynamicArrayFieldProps) => {
   const countField = prop.dynamicCount!;
   const count =
     typeof formData[countField] === "number"

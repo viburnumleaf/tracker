@@ -14,17 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Tracker, LogEntry } from "@/src/api/trackers/trackers.api";
 import { Trash2 } from "lucide-react";
 
-interface LogEntriesListDialogProps {
+type LogEntriesListDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tracker: Tracker | null;
 }
 
-export function LogEntriesListDialog({
+export const LogEntriesListDialog = ({
   open,
   onOpenChange,
   tracker,
-}: LogEntriesListDialogProps) {
+}: LogEntriesListDialogProps) => {
   const isAdminMode = useAdminMode();
   const { entries, isLoading } = useLogEntries(
     tracker?._id || null,

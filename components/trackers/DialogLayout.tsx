@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
 
-interface DialogLayoutProps {
+type DialogLayoutProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -25,7 +25,7 @@ interface DialogLayoutProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
-export function DialogLayout({
+export const DialogLayout = ({
   open,
   onOpenChange,
   title,
@@ -35,7 +35,7 @@ export function DialogLayout({
   footer,
   isLoading = false,
   maxWidth = "2xl",
-}: DialogLayoutProps) {
+}: DialogLayoutProps) => {
   const maxWidthClasses = {
     sm: "max-w-sm",
     md: "max-w-md",

@@ -13,17 +13,17 @@ import {
 } from "@/components/ui/field";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 
-interface EditTrackerDialogProps {
+type EditTrackerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tracker: Tracker | null;
 }
 
-export function EditTrackerDialog({
+export const EditTrackerDialog = ({
   open,
   onOpenChange,
   tracker,
-}: EditTrackerDialogProps) {
+}: EditTrackerDialogProps) => {
   const updateTrackerMutation = useUpdateTracker();
   const { schemaJson, setSchemaJson, schemaError, validateSchema } =
     useSchemaForm({

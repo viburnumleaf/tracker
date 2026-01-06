@@ -2,17 +2,17 @@ import { useMemo } from "react";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 import { LinkedTrackerInfo } from "../types";
 
-interface UseLinkedTrackersProps {
+type UseLinkedTrackersProps = {
   tracker: Tracker | null;
   trackers: Tracker[];
   isAdminMode: boolean;
 }
 
-export function useLinkedTrackers({
+export const useLinkedTrackers = ({
   tracker,
   trackers,
   isAdminMode,
-}: UseLinkedTrackersProps): LinkedTrackerInfo[] | null {
+}: UseLinkedTrackersProps): LinkedTrackerInfo[] | null => {
   return useMemo(() => {
     if (!tracker || !isAdminMode) return null;
 
@@ -35,7 +35,7 @@ export function useLinkedTrackers({
 
     // Second pass: add linked tracker info
     for (const [fieldName, fieldSchema] of Object.entries(properties)) {
-      // Старий спосіб: поле з createLinkedLog (додаємо тільки якщо немає nested object)
+      // Old way: field with createLinkedLog (add only if there is no nested object)
       if (fieldSchema.createLinkedLog && !parentFieldsWithNestedObjects.has(fieldName)) {
         // Normalize tracker name from schema to match database format
         const normalizedTrackerName = fieldSchema.createLinkedLog.trackerName
@@ -54,7 +54,7 @@ export function useLinkedTrackers({
         });
       }
 
-      // Новий спосіб: вкладений об'єкт з dependsOn
+      // New way: nested object with dependsOn
       if (
         fieldSchema.type === "object" &&
         fieldSchema.dependsOn
@@ -63,7 +63,7 @@ export function useLinkedTrackers({
         let linkedTracker: Tracker | null = null;
         let linkedTrackerName: string;
 
-        // Спочатку спробуємо знайти через createLinkedLog на dependsOn полі
+        // First try to find through createLinkedLog on the dependsOn field
         if (dependsOnProp?.createLinkedLog?.trackerName) {
           // Normalize tracker name from schema to match database format
           const trackerName = dependsOnProp.createLinkedLog.trackerName
@@ -75,10 +75,10 @@ export function useLinkedTrackers({
           
           linkedTrackerName = dependsOnProp.createLinkedLog.trackerName;
         } else {
-          // Fallback: Якщо createLinkedLog немає, спробуємо знайти трекер за назвою поля (наприклад, "peeLog" -> "pee")
+          // Fallback: If createLinkedLog is not present, try to find tracker by field name (e.g., "peeLog" -> "pee")
           const normalizedFieldName = fieldName
             .toLowerCase()
-            .replace(/log$/, "") // Видаляємо "log" з кінця
+            .replace(/log$/, "") // Remove "log" from the end
             .replace(/\s+/g, "_");
 
           // Find tracker by exact name match (tracker names in DB are already normalized)
@@ -95,7 +95,7 @@ export function useLinkedTrackers({
             linkedTracker,
           });
         } else if (dependsOnProp?.createLinkedLog) {
-          // Якщо трекер не знайдено, але є createLinkedLog, все одно показуємо зв'язок
+          // If tracker is not found, but there is createLinkedLog, still show the link
           linkedFields.push({
             fieldName,
             fieldTitle: fieldSchema.title || fieldName,

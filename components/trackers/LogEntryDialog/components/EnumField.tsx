@@ -19,7 +19,7 @@ import { CustomInputState } from "../types";
 import { useUpdateTracker } from "@/src/features/trackers/hooks";
 import { useAdminMode } from "@/src/features/auth/hooks";
 
-interface EnumFieldProps {
+type EnumFieldProps = {
   fieldKey: string;
   prop: JsonSchemaProperty;
   value: unknown;
@@ -37,7 +37,7 @@ interface EnumFieldProps {
   >;
 }
 
-export function EnumField({
+export const EnumField = ({
   fieldKey,
   prop,
   value,
@@ -49,7 +49,7 @@ export function EnumField({
   onUpdateField,
   onSetCustomEnumValues,
   onSetCustomInputStates,
-}: EnumFieldProps) {
+}: EnumFieldProps) => {
   const isAdminMode = useAdminMode();
   const updateTrackerMutation = useUpdateTracker();
   const allOptions = [...(prop.enum || []), ...customEnumValues];

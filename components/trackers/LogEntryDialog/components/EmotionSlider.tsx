@@ -5,20 +5,20 @@ import { Label } from "@/components/ui/label";
 import { JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
 import { Smile, Meh, Frown, Annoyed, Laugh } from "lucide-react";
 
-interface EmotionSliderProps {
+type EmotionSliderProps = {
   value: unknown;
   onChange: (value: unknown) => void;
   schema: JsonSchemaProperty;
 }
 
 // Видобуваємо числове значення з enum (наприклад "5 - Best" -> 5)
-function extractNumberFromEnum(enumValue: string): number {
+const extractNumberFromEnum = (enumValue: string): number => {
   const match = enumValue.match(/^(\d+)/);
   return match ? parseInt(match[1], 10) : 0;
 }
 
 // Видобуваємо текст з enum (наприклад "5 - Best" -> "Best")
-function extractTextFromEnum(enumValue: string): string {
+const extractTextFromEnum = (enumValue: string): string => {
   const parts = enumValue.split(" - ");
   return parts.length > 1 ? parts[1] : enumValue;
 }
@@ -33,7 +33,7 @@ const EMOTION_COLORS: Record<string, string> = {
 };
 
 // Компонент для відображення іконки емоції
-function EmotionIcon({ value }: { value: string }) {
+const EmotionIcon = ({ value }: { value: string }) => {
   const numValue = extractNumberFromEnum(value).toString();
   const iconSize = "size-6";
   const color = EMOTION_COLORS[numValue] || EMOTION_COLORS["3"];
@@ -54,7 +54,7 @@ function EmotionIcon({ value }: { value: string }) {
   }
 }
 
-export function EmotionSlider({ value, onChange, schema }: EmotionSliderProps) {
+export const EmotionSlider = ({ value, onChange, schema }: EmotionSliderProps) => {
   const enumValues = schema.enum || [];
 
   // Сортуємо enum значення за числовим значенням (від найбільшого до найменшого)
@@ -102,7 +102,7 @@ export function EmotionSlider({ value, onChange, schema }: EmotionSliderProps) {
 
         {/* Іконки під слайдером */}
         <div className="flex justify-between items-center -mt-6 px-1">
-          {sortedEnumValues.map((enumValue, index) => {
+          {[...sortedEnumValues].reverse().map((enumValue, index) => {
             const numValue = extractNumberFromEnum(enumValue).toString();
             const isActive = index === sliderValue;
 

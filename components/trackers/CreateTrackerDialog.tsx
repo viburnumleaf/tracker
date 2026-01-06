@@ -14,15 +14,15 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 
-interface CreateTrackerDialogProps {
+type CreateTrackerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateTrackerDialog({
+export const CreateTrackerDialog = ({
   open,
   onOpenChange,
-}: CreateTrackerDialogProps) {
+}: CreateTrackerDialogProps) => {
   const [name, setName] = useState("");
   const createTrackerMutation = useCreateTracker();
   const { schemaJson, setSchemaJson, schemaError, validateSchema, reset } =
@@ -33,6 +33,7 @@ export function CreateTrackerDialog({
       setName("");
       reset();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reset]);
 
   const handleSubmit = async (e: React.FormEvent) => {

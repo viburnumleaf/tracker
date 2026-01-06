@@ -11,15 +11,15 @@ import { DraftEntry } from "@/src/api/drafts/drafts.api";
 import { Trash2 } from "lucide-react";
 import { LogEntryDialog } from "./LogEntryDialog";
 
-interface DraftsListDialogProps {
+type DraftsListDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function DraftsListDialog({
+export const DraftsListDialog = ({
   open,
   onOpenChange,
-}: DraftsListDialogProps) {
+}: DraftsListDialogProps) => {
   const { drafts, isLoading } = useDrafts();
   const { trackers } = useTrackers(false);
   const deleteDraftMutation = useDeleteDraft();

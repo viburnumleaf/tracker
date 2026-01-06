@@ -2,7 +2,7 @@ import { AxiosResponse } from "axios";
 import { apiClient } from "@/src/api/client";
 
 // JSON Schema types for tracker field definitions
-export interface JsonSchemaProperty {
+export type JsonSchemaProperty = {
   type: "string" | "number" | "boolean" | "array" | "object";
   title?: string;
   description?: string;
@@ -27,13 +27,13 @@ export interface JsonSchemaProperty {
   };
 }
 
-export interface JsonSchema {
+export type JsonSchema = {
   type: "object";
   properties: Record<string, JsonSchemaProperty>;
   required?: string[];
 }
 
-export interface Tracker {
+export type Tracker = {
   _id: string;
   name: string;
   schema: JsonSchema;
@@ -41,16 +41,16 @@ export interface Tracker {
   updatedAt: string;
 }
 
-export interface CreateTrackerRequest {
+export type CreateTrackerRequest = {
   name: string;
   schema: JsonSchema;
 }
 
-export interface UpdateTrackerRequest {
+export type UpdateTrackerRequest = {
   schema: JsonSchema;
 }
 
-export interface LogEntry {
+export type LogEntry = {
   _id: string;
   trackerId: string;
   userId: string;
@@ -58,7 +58,7 @@ export interface LogEntry {
   createdAt: string;
 }
 
-export interface CreateLogEntryRequest {
+export type CreateLogEntryRequest = {
   trackerId: string;
   data: Record<string, unknown>;
   customEnumValues?: Record<string, string[]>;
