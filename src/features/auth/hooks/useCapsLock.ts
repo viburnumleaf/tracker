@@ -1,41 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export const useCapsLock = () => {
-  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+const isMobile = () => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ) || (window.matchMedia && window.matchMedia("(max-width: 768px)").matches);
+};
+
+export const useAdminMode = () => {
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const lastTapRef = useRef(0);
+  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const mobile = isMobile();
+
+    // Desktop: CapsLock detection
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.getModifierState && e.getModifierState("CapsLock")) {
-        setIsCapsLockOn(true);
+      if (!mobile && e.getModifierState && e.getModifierState("CapsLock")) {
+        setIsAdminMode(true);
       }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.getModifierState && e.getModifierState("CapsLock")) {
-        setIsCapsLockOn(true);
-      } else {
-        setIsCapsLockOn(false);
+      if (!mobile) {
+        if (e.getModifierState && e.getModifierState("CapsLock")) {
+          setIsAdminMode(true);
+        } else {
+          setIsAdminMode(false);
+        }
       }
     };
 
-    // Check initial state
-    window.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("keyup", handleKeyUp);
+    // Mobile: Double tap detection
+    const handleTouchStart = (e: TouchEvent) => {
+      if (!mobile) return;
 
-    // Also check on focus to catch state changes from other windows
-    const handleFocus = () => {
-      // We can't directly check CapsLock state without a key event,
-      // but we can reset and wait for next key event
+      const currentTime = Date.now();
+      const tapLength = currentTime - lastTapRef.current;
+
+      if (tapLength < 300 && tapLength > 0) {
+        // Double tap detected
+        setIsAdminMode((prev) => !prev);
+        e.preventDefault();
+      } else {
+        // Clear any existing timeout
+        if (tapTimeoutRef.current) {
+          clearTimeout(tapTimeoutRef.current);
+        }
+        // Set timeout to reset if no second tap
+        tapTimeoutRef.current = setTimeout(() => {
+          lastTapRef.current = 0;
+        }, 300);
+      }
+
+      lastTapRef.current = currentTime;
     };
 
-    window.addEventListener("focus", handleFocus);
+    if (mobile) {
+      window.addEventListener("touchstart", handleTouchStart);
+    } else {
+      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keyup", handleKeyUp);
+    }
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("keyup", handleKeyUp);
-      window.removeEventListener("focus", handleFocus);
+      if (mobile) {
+        window.removeEventListener("touchstart", handleTouchStart);
+        if (tapTimeoutRef.current) {
+          clearTimeout(tapTimeoutRef.current);
+        }
+      } else {
+        window.removeEventListener("keydown", handleKeyDown);
+        window.removeEventListener("keyup", handleKeyUp);
+      }
     };
   }, []);
 
-  return isCapsLockOn;
+  return isAdminMode;
 };

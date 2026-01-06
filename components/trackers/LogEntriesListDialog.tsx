@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLogEntries, useDeleteLogEntry, usePermanentlyDeleteLogEntry } from "@/src/features/trackers/hooks";
-import { useCapsLock } from "@/src/features/auth/hooks";
+import { useAdminMode } from "@/src/features/auth/hooks";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,7 @@ export function LogEntriesListDialog({
   onOpenChange,
   tracker,
 }: LogEntriesListDialogProps) {
-  const isAdminMode = useCapsLock();
+  const isAdminMode = useAdminMode();
   const { entries, isLoading } = useLogEntries(tracker?._id || null, isAdminMode);
   const deleteLogEntryMutation = useDeleteLogEntry();
   const permanentlyDeleteLogEntryMutation = usePermanentlyDeleteLogEntry();

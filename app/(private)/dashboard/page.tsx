@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, useUser, useLogout, useCapsLock } from "@/src/features/auth/hooks";
+import { useAuth, useUser, useLogout, useAdminMode } from "@/src/features/auth/hooks";
 import { useTrackers, useDeleteTracker, usePermanentlyDeleteTracker } from "@/src/features/trackers/hooks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,7 +36,7 @@ export default function DashboardPage() {
   const { session, isLoading, isAuthenticated } = useAuth();
   const { user } = useUser();
   const logoutMutation = useLogout();
-  const isAdminMode = useCapsLock();
+  const isAdminMode = useAdminMode();
   const { trackers, isLoading: trackersLoading } = useTrackers(isAdminMode);
   const deleteTrackerMutation = useDeleteTracker();
   const permanentlyDeleteTrackerMutation = usePermanentlyDeleteTracker();

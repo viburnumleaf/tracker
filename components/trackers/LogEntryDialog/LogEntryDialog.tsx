@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useCreateLogEntry, useTrackers } from "@/src/features/trackers/hooks";
-import { useCapsLock } from "@/src/features/auth/hooks";
+import { useAdminMode } from "@/src/features/auth/hooks";
 import { useCreateDraft, useDeleteDraft } from "@/src/features/drafts/hooks";
 import {
   Dialog,
@@ -42,7 +42,7 @@ export function LogEntryDialog({
   const createLogEntryMutation = useCreateLogEntry();
   const createDraftMutation = useCreateDraft();
   const deleteDraftMutation = useDeleteDraft();
-  const isAdminMode = useCapsLock();
+  const isAdminMode = useAdminMode();
   const { trackers } = useTrackers(false);
   const [linkedTrackerDialogOpen, setLinkedTrackerDialogOpen] = useState(false);
   const [selectedLinkedTracker, setSelectedLinkedTracker] =

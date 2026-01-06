@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { CustomInputState } from "../types";
 import { useUpdateTracker } from "@/src/features/trackers/hooks";
-import { useCapsLock } from "@/src/features/auth/hooks";
+import { useAdminMode } from "@/src/features/auth/hooks";
 
 interface EnumFieldProps {
   fieldKey: string;
@@ -50,7 +50,7 @@ export function EnumField({
   onSetCustomEnumValues,
   onSetCustomInputStates,
 }: EnumFieldProps) {
-  const isAdminMode = useCapsLock();
+  const isAdminMode = useAdminMode();
   const updateTrackerMutation = useUpdateTracker();
   const allOptions = [...(prop.enum || []), ...customEnumValues];
   const currentValue = String(value || "");
