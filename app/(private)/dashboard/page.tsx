@@ -17,7 +17,7 @@ import {
   useDeleteTrackerDialog,
   useFilteredTrackers,
 } from "./hooks";
-import { useSwipe } from "./hooks/useSwipe";
+// import { useSwipe } from "./hooks/useSwipe";
 import {
   DashboardHeader,
   TrackersSection,
@@ -38,15 +38,15 @@ export default function DashboardPage() {
   const filteredTrackers = useFilteredTrackers(trackers, searchQuery, isAdminMode);
 
   // Swipe up to open all logs dialog (mobile)
-  useSwipe({
-    onSwipe: (direction) => {
-      if (direction === "up") {
-        dialogs.allLogsListDialog.openDialog();
-      }
-    },
-    threshold: 80,
-    preventDefault: false, // Allow normal scrolling
-  });
+  // useSwipe({
+  //   onSwipe: (direction) => {
+  //     if (direction === "up") {
+  //       dialogs.allLogsListDialog.openDialog();
+  //     }
+  //   },
+  //   threshold: 80,
+  //   preventDefault: false, // Allow normal scrolling
+  // });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

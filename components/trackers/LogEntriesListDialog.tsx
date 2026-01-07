@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useLogEntries,
   useDeleteLogEntry,
@@ -70,6 +72,20 @@ export const LogEntriesListDialog = ({
       .join(", ");
   };
 
+  // Virtualization setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: entries.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120, // Estimated height of each entry card
+    overscan: 5, // Render 5 extra items outside viewport
+  });
+
+  // Update virtualizer when entries change
+  useEffect(() => {
+    virtualizer.measure();
+  }, [entries.length, virtualizer]);
+
   if (!tracker) return null;
 
   const isPermanentDelete = itemToDelete?.isDeleted || false;
@@ -99,54 +115,83 @@ export const LogEntriesListDialog = ({
           )
         }
       >
-        <div className="space-y-4">
+        <div className="flex flex-col h-full min-h-0">
           {isLoading ? (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-sm py-4">
               Loading entries...
             </div>
           ) : entries.length === 0 ? (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-sm py-4">
               No log entries yet. Create your first entry to get started!
             </div>
           ) : (
-            entries.map((entry) => {
-              const isDeleted = entry.isDeleted || false;
-              return (
-                <Card
-                  key={entry._id}
-                  className={`p-4 ${
-                    isDeleted
-                      ? "opacity-50 border-dashed border-2 border-destructive"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </div>
-                        {isDeleted && (
-                          <span className="text-xs text-destructive">
-                            (Deleted)
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm">{formatEntryData(entry.data)}</div>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(entry)}
-                      disabled={isLoadingDelete}
-                      className="shrink-0"
+            <div
+              ref={parentRef}
+              className="flex-1 overflow-auto min-h-[400px]"
+              style={{
+                contain: "strict",
+              }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                  const entry = entries[virtualItem.index];
+                  const isDeleted = entry.isDeleted || false;
+                  return (
+                    <div
+                      key={virtualItem.key}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualItem.size}px`,
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}
+                      className="p-1"
                     >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })
+                      <Card
+                        className={`p-4 h-full ${
+                          isDeleted
+                            ? "opacity-50 border-dashed border-2 border-destructive"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(entry.createdAt).toLocaleString()}
+                              </div>
+                              {isDeleted && (
+                                <span className="text-xs text-destructive">
+                                  (Deleted)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm">{formatEntryData(entry.data)}</div>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteClick(entry)}
+                            disabled={isLoadingDelete}
+                            className="shrink-0"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </Card>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       </DialogLayout>
