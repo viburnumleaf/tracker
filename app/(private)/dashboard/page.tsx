@@ -9,6 +9,7 @@ import {
   EditTrackerDialog,
   LogEntryDialog,
   LogEntriesListDialog,
+  AllLogsListDialog,
   DraftsListDialog,
 } from "@/components/trackers";
 import {
@@ -16,6 +17,7 @@ import {
   useDeleteTrackerDialog,
   useFilteredTrackers,
 } from "./hooks";
+import { useSwipe } from "./hooks/useSwipe";
 import {
   DashboardHeader,
   TrackersSection,
@@ -33,6 +35,17 @@ export default function DashboardPage() {
   const dialogs = useDashboardDialogs();
   const deleteTracker = useDeleteTrackerDialog();
   const filteredTrackers = useFilteredTrackers(trackers, searchQuery, isAdminMode);
+
+  // Swipe up to open all logs dialog (mobile)
+  useSwipe({
+    onSwipe: (direction) => {
+      if (direction === "up") {
+        dialogs.allLogsListDialog.openDialog();
+      }
+    },
+    threshold: 80,
+    preventDefault: false, // Allow normal scrolling
+  });
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -86,6 +99,7 @@ export default function DashboardPage() {
         onSearchChange={setSearchQuery}
         onAddTracker={dialogs.createDialog.openDialog}
         onViewDrafts={dialogs.draftsListDialog.openDialog}
+        onViewAllLogs={dialogs.allLogsListDialog.openDialog}
       />
 
       <CreateTrackerDialog
@@ -130,6 +144,14 @@ export default function DashboardPage() {
           }
         }}
         tracker={selectedTrackerForLogs}
+      />
+
+      <AllLogsListDialog
+        open={dialogs.allLogsListDialog.open}
+        onOpenChange={(open) => {
+          if (open) dialogs.allLogsListDialog.openDialog();
+          else dialogs.allLogsListDialog.closeDialog();
+        }}
       />
 
       <DraftsListDialog

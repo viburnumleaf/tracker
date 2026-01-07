@@ -5,6 +5,7 @@ export function useDashboardDialogs() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [logsListDialogOpen, setLogsListDialogOpen] = useState(false);
+  const [allLogsListDialogOpen, setAllLogsListDialogOpen] = useState(false);
   const [draftsListDialogOpen, setDraftsListDialogOpen] = useState(false);
   const [selectedTrackerId, setSelectedTrackerId] = useState<string | null>(null);
   const [trackerToEditId, setTrackerToEditId] = useState<string | null>(null);
@@ -55,6 +56,14 @@ export function useDashboardDialogs() {
     setDraftsListDialogOpen(false);
   }, []);
 
+  const openAllLogsListDialog = useCallback(() => {
+    setAllLogsListDialogOpen(true);
+  }, []);
+
+  const closeAllLogsListDialog = useCallback(() => {
+    setAllLogsListDialogOpen(false);
+  }, []);
+
   return {
     createDialog: {
       open: createDialogOpen,
@@ -78,6 +87,11 @@ export function useDashboardDialogs() {
       trackerId: selectedTrackerId,
       openDialog: openLogsListDialog,
       closeDialog: closeLogsListDialog,
+    },
+    allLogsListDialog: {
+      open: allLogsListDialogOpen,
+      openDialog: openAllLogsListDialog,
+      closeDialog: closeAllLogsListDialog,
     },
     draftsListDialog: {
       open: draftsListDialogOpen,

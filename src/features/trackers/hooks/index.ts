@@ -2,6 +2,7 @@ export { useTrackers } from "./useTrackers";
 export { useCreateTracker } from "./useCreateTracker";
 export { useUpdateTracker } from "./useUpdateTracker";
 export { useLogEntries } from "./useLogEntries";
+export { useAllLogEntries } from "./useAllLogEntries";
 export { useCreateLogEntry } from "./useCreateLogEntry";
 export { useDeleteTracker } from "./useDeleteTracker";
 export { useDeleteLogEntry } from "./useDeleteLogEntry";
