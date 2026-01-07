@@ -5,7 +5,7 @@ import { useState } from "react";
 // Імпорт для виконання реєстрації при завантаженні модуля
 import "./register-inputs";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export const Providers = ({ children }: { children: React.ReactNode }) => {
   const [queryClient] = useState(
     () =>
       new QueryClient({

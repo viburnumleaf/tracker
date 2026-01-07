@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from "react";
 
 type SwipeDirection = "left" | "right" | "up" | "down";
 
-interface UseSwipeOptions {
+type UseSwipeOptions = {
   onSwipe?: (direction: SwipeDirection) => void;
   threshold?: number; // Minimum distance in pixels to trigger swipe
   preventDefault?: boolean;
 }
 
-export function useSwipe({
+export const useSwipe = ({
   onSwipe,
   threshold = 50,
   preventDefault = true,
-}: UseSwipeOptions = {}) {
+}: UseSwipeOptions = {}) => {
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(
     null
   );

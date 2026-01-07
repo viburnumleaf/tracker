@@ -91,6 +91,7 @@ export default function DashboardPage() {
           onEditClick={(tracker) => dialogs.editDialog.openDialog(tracker._id)}
           onDeleteClick={deleteTracker.openDeleteConfirm}
           isDeleting={deleteTracker.isLoading}
+          includeDeleted={isAdminMode}
         />
       </div>
 

@@ -7,7 +7,7 @@ import { getAuthDb, getClient } from "./db";
 let authInstance: ReturnType<typeof betterAuth> | null = null;
 let authPromise: Promise<ReturnType<typeof betterAuth>> | null = null;
 
-async function initAuth() {
+const initAuth = async () => {
   if (authInstance) return authInstance;
   if (authPromise) return authPromise;
 

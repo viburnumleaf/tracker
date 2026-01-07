@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useUser } from "@/src/features/auth/hooks";
 import { useLogout } from "@/src/features/auth/hooks";
 
-export function DashboardHeader() {
+export const DashboardHeader = () => {
   const { user } = useUser();
   const logoutMutation = useLogout();
 

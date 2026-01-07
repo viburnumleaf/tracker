@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useDeleteTracker, usePermanentlyDeleteTracker } from "@/src/features/trackers/hooks";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 
-export function useDeleteTrackerDialog() {
+export const useDeleteTrackerDialog = () => {
   const deleteTrackerMutation = useDeleteTracker();
   const permanentlyDeleteTrackerMutation = usePermanentlyDeleteTracker();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);

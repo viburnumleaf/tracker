@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const trackersService = new TrackersService();
 
-export async function getTrackers(userId: string, request?: Request) {
+export const getTrackers = async (userId: string, request?: Request) => {
   try {
     const includeDeleted = request
       ? new URL(request.url).searchParams.get("includeDeleted") === "true"
@@ -20,7 +20,7 @@ export async function getTrackers(userId: string, request?: Request) {
   }
 }
 
-export async function createTracker(userId: string, request: Request) {
+export const createTracker = async (userId: string, request: Request) => {
   try {
     const body = await request.json();
     const validatedData = createTrackerSchema.parse(body);
@@ -43,7 +43,7 @@ export async function createTracker(userId: string, request: Request) {
   }
 }
 
-export async function updateTracker(userId: string, trackerId: string, request: Request) {
+export const updateTracker = async (userId: string, trackerId: string, request: Request) => {
   try {
     const body = await request.json();
     const validatedData = updateTrackerSchema.parse(body);
@@ -75,7 +75,7 @@ export async function updateTracker(userId: string, trackerId: string, request: 
   }
 }
 
-export async function deleteTracker(userId: string, trackerId: string) {
+export const deleteTracker = async (userId: string, trackerId: string) => {
   try {
     await trackersService.deleteTracker(userId, trackerId);
     return NextResponse.json({ success: true });
@@ -97,7 +97,7 @@ export async function deleteTracker(userId: string, trackerId: string) {
   }
 }
 
-export async function permanentlyDeleteTracker(userId: string, trackerId: string) {
+export const permanentlyDeleteTracker = async (userId: string, trackerId: string) => {
   try {
     await trackersService.permanentlyDeleteTracker(trackerId);
     return NextResponse.json({ success: true });

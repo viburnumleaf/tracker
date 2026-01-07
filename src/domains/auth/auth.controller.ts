@@ -3,7 +3,7 @@ import { AuthService } from "./auth.service";
 
 const authService = new AuthService();
 
-export async function getSession(request: Request) {
+export const getSession = async (request: Request) => {
   try {
     const session = await authService.getSession(request);
     return Response.json(session);
@@ -16,7 +16,7 @@ export async function getSession(request: Request) {
   }
 }
 
-export async function signOut(request: Request) {
+export const signOut = async (request: Request) => {
   try {
     const result = await authService.signOut(request);
     return NextResponse.json(result);
@@ -30,7 +30,7 @@ export async function signOut(request: Request) {
   }
 }
 
-export async function getUser(email: string) {
+export const getUser = async (email: string) => {
   try {
     if (!email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -5,7 +5,7 @@ import { LogEntryFormData } from "./types";
  * Конвертує ISO 8601 значення в datetime-local формат для відображення
  * datetime-local input працює з локальним часом, тому потрібно конвертувати UTC ISO назад
  */
-export function convertISOToDateTimeLocal(value: unknown): string {
+export const convertISOToDateTimeLocal = (value: unknown): string => {
   if (typeof value === "string") {
     // Якщо це вже datetime-local формат (YYYY-MM-DDTHH:mm), повертаємо як є
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
@@ -38,7 +38,7 @@ export function convertISOToDateTimeLocal(value: unknown): string {
  * Конвертує datetime-local значення в ISO 8601 формат (UTC)
  * datetime-local input повертає локальний час, потрібно конвертувати в UTC
  */
-export function convertDateTimeLocal(value: unknown): unknown {
+export const convertDateTimeLocal = (value: unknown): unknown => {
   if (typeof value === "string") {
     const isDateTimeLocal = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value);
     const isISO =
@@ -67,7 +67,7 @@ export function convertDateTimeLocal(value: unknown): unknown {
  * Конвертує time значення з формату HH:MM в HH:MM:SS
  * HTML5 time input повертає HH:MM, а JSON Schema очікує HH:MM:SS
  */
-export function convertTime(value: unknown): unknown {
+export const convertTime = (value: unknown): unknown => {
   if (typeof value === "string" && /^\d{2}:\d{2}$/.test(value)) {
     return `${value}:00`;
   }
@@ -77,10 +77,10 @@ export function convertTime(value: unknown): unknown {
 /**
  * Конвертує всі datetime-local значення в формі в ISO формат
  */
-export function convertFormDataToISO(
+export const convertFormDataToISO = (
   formData: LogEntryFormData,
   properties: Record<string, JsonSchemaProperty>
-): LogEntryFormData {
+): LogEntryFormData => {
   const convertedData = { ...formData };
 
   // Конвертуємо поля верхнього рівня
@@ -121,10 +121,10 @@ export function convertFormDataToISO(
  * Конвертує ISO дані назад в формат форми (datetime-local тощо)
  * Використовується при завантаженні даних з чернетки
  */
-export function convertISOToFormData(
+export const convertISOToFormData = (
   isoData: LogEntryFormData,
   properties: Record<string, JsonSchemaProperty>
-): LogEntryFormData {
+): LogEntryFormData => {
   const convertedData = { ...isoData };
 
   // Конвертуємо поля верхнього рівня
@@ -161,10 +161,10 @@ export function convertISOToFormData(
  * Видаляє вкладені об'єкти, якщо їх dependsOn поле вимкнено
  * АБО якщо вони мають createLinkedLog (вони будуть створені як окремі linked logs)
  */
-export function filterDisabledNestedObjects(
+export const filterDisabledNestedObjects = (
   data: LogEntryFormData,
   properties: Record<string, JsonSchemaProperty>
-): LogEntryFormData {
+): LogEntryFormData => {
   const filteredData = { ...data };
 
   for (const [key, prop] of Object.entries(properties)) {
@@ -197,7 +197,7 @@ export function filterDisabledNestedObjects(
 /**
  * Ініціалізує значення за замовчуванням для поля
  */
-export function getDefaultValue(prop: JsonSchemaProperty): unknown {
+export const getDefaultValue = (prop: JsonSchemaProperty): unknown => {
   if (prop.default !== undefined) {
     return prop.default;
   }
@@ -251,9 +251,9 @@ export function getDefaultValue(prop: JsonSchemaProperty): unknown {
 /**
  * Ініціалізує форму з дефолтними значеннями
  */
-export function initializeFormData(
+export const initializeFormData = (
   properties: Record<string, JsonSchemaProperty>
-): LogEntryFormData {
+): LogEntryFormData => {
   const initialData: LogEntryFormData = {};
 
   for (const [key, prop] of Object.entries(properties)) {
@@ -283,10 +283,10 @@ export function initializeFormData(
 /**
  * Перевіряє, чи поле має показуватися (перевірка dependsOn)
  */
-export function shouldShowField(
+export const shouldShowField = (
   prop: JsonSchemaProperty,
   formData: LogEntryFormData
-): boolean {
+): boolean => {
   if (prop.dependsOn) {
     const dependsOnValue = formData[prop.dependsOn];
     return !!(
@@ -301,11 +301,11 @@ export function shouldShowField(
 /**
  * Визначає, чи поле є обов'язковим
  */
-export function isFieldRequired(
+export const isFieldRequired = (
   key: string,
   prop: JsonSchemaProperty,
   tracker: { schema: { required?: string[]; properties?: Record<string, JsonSchemaProperty> } } | null
-): boolean {
+): boolean => {
   if (key.includes(".")) {
     const [parentKey, nestedKey] = key.split(".");
     const parentProp = tracker?.schema.properties?.[parentKey];

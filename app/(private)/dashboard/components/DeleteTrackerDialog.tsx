@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface DeleteTrackerDialogProps {
+type DeleteTrackerDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isPermanentDelete: boolean;
@@ -19,13 +19,13 @@ interface DeleteTrackerDialogProps {
   isLoading: boolean;
 }
 
-export function DeleteTrackerDialog({
+export const DeleteTrackerDialog = ({
   open,
   onOpenChange,
   isPermanentDelete,
   onConfirm,
   isLoading,
-}: DeleteTrackerDialogProps) {
+}: DeleteTrackerDialogProps) => {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>

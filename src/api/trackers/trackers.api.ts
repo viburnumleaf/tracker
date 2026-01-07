@@ -151,4 +151,13 @@ export const trackersApi = {
   permanentlyDeleteLogEntry: async (trackerId: string, logEntryId: string): Promise<void> => {
     await apiClient.delete(`/api/logs/${trackerId}/entries?logEntryId=${logEntryId}&permanent=true`);
   },
+
+  // Update trackers order
+  updateTrackersOrder: async (trackerIds: string[]): Promise<{ success: boolean; trackerIds: string[] }> => {
+    const response: AxiosResponse<{ success: boolean; trackerIds: string[] }> = await apiClient.put(
+      "/api/users/trackers",
+      { trackerIds }
+    );
+    return response.data;
+  },
 };

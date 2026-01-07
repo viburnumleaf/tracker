@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-export function useDashboardDialogs() {
+export const useDashboardDialogs = () => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [logDialogOpen, setLogDialogOpen] = useState(false);

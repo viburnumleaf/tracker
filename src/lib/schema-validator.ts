@@ -1,6 +1,6 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import { JsonSchema } from "@/src/api/trackers/trackers.api";
+import { JsonSchema, JsonSchemaProperty } from "@/src/api/trackers/trackers.api";
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
@@ -10,12 +10,12 @@ addFormats(ajv);
  * перед валідацією, оскільки вони використовуються тільки для UI
  * Також об'єднує кастомні enum значення з оригінальними enum значеннями
  */
-function cleanSchemaForValidation(
+const cleanSchemaForValidation = (
   schema: JsonSchema,
   customEnumValues?: Record<string, string[]>
-): any {
-  const cleanProperty = (prop: any, fieldKey?: string): any => {
-    const cleaned: any = {
+): JsonSchema => {
+  const cleanProperty = (prop: JsonSchemaProperty, fieldKey?: string): JsonSchemaProperty => {
+    const cleaned: JsonSchemaProperty = {
       type: prop.type,
     };
 
@@ -56,7 +56,7 @@ function cleanSchemaForValidation(
     return cleaned;
   };
 
-  const cleaned: any = {
+  const cleaned: JsonSchema = {
     type: "object",
     properties: {},
   };
@@ -79,11 +79,11 @@ function cleanSchemaForValidation(
  * @param customEnumValues - Кастомні enum значення, які потрібно додати до схеми
  * @returns Об'єкт з isValid та errors
  */
-export function validateAgainstSchema(
+export const validateAgainstSchema = (
   schema: JsonSchema,
   data: Record<string, unknown>,
   customEnumValues?: Record<string, string[]>
-): { isValid: boolean; errors: string[]; fieldErrors?: Record<string, string[]> } {
+): { isValid: boolean; errors: string[]; fieldErrors?: Record<string, string[]> } => {
   try {
     // Очищуємо схему від кастомних полів та об'єднуємо кастомні enum значення
     const cleanSchema = cleanSchemaForValidation(schema, customEnumValues);

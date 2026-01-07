@@ -4,7 +4,7 @@ import { requireAuth, requireAuthWithEmail } from "./auth-guard";
 /**
  * Helper to handle errors that might be Response objects
  */
-function handleError(error: unknown): Response {
+const handleError = (error: unknown): Response => {
   if (error instanceof Response) {
     return error;
   }
@@ -18,9 +18,9 @@ function handleError(error: unknown): Response {
 /**
  * Wrapper for handlers that require authentication
  */
-export function withAuth(
+export const withAuth = (
   handler: (userId: string, request: Request) => Promise<Response>
-) {
+) => {
   return async (request: Request): Promise<Response> => {
     try {
       const userId = await requireAuth(request);
@@ -34,13 +34,13 @@ export function withAuth(
 /**
  * Wrapper for handlers with params that require authentication
  */
-export function withAuthParams<T extends Record<string, string>>(
+export const withAuthParams = <T extends Record<string, string>>(
   handler: (
     userId: string,
     request: Request,
     params: T
   ) => Promise<Response>
-) {
+) => {
   return async (
     request: Request,
     context: { params: Promise<T> }
@@ -58,9 +58,9 @@ export function withAuthParams<T extends Record<string, string>>(
 /**
  * Wrapper for handlers that require authentication with email
  */
-export function withAuthEmail(
+export const withAuthEmail = (
   handler: (userId: string, email: string, request: Request) => Promise<Response>
-) {
+) => {
   return async (request: Request): Promise<Response> => {
     try {
       const { userId, email } = await requireAuthWithEmail(request);
@@ -74,9 +74,9 @@ export function withAuthEmail(
 /**
  * Simple wrapper for handlers that don't require auth
  */
-export function withHandler(
+export const withHandler = (
   handler: (request: Request) => Promise<Response>
-) {
+) => {
   return async (request: Request): Promise<Response> => {
     try {
       return await handler(request);

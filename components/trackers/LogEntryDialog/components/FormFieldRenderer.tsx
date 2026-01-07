@@ -6,7 +6,7 @@ import { NestedObjectField } from "./NestedObjectField";
 import { DynamicArrayField } from "./DynamicArrayField";
 import { EnumField } from "./EnumField";
 
-export function FormFieldRenderer(props: FormFieldProps) {
+export const FormFieldRenderer = (props: FormFieldProps) => {
   const {
     fieldKey,
     prop,

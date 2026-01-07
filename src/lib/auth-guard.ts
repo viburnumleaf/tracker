@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
  * Get authenticated user ID from request
  * @returns userId or null if unauthorized
  */
-export async function getUserId(request: Request): Promise<string | null> {
+export const getUserId = async (request: Request): Promise<string | null> => {
   try {
     const auth = await getAuth();
     const session = await auth.api.getSession({
@@ -22,7 +22,7 @@ export async function getUserId(request: Request): Promise<string | null> {
 /**
  * Get session from request
  */
-export async function getSession(request: Request) {
+export const getSession = async (request: Request) => {
   try {
     const auth = await getAuth();
     const session = await auth.api.getSession({
@@ -40,7 +40,7 @@ export async function getSession(request: Request) {
  * Guard middleware - ensures user is authenticated
  * @returns userId or throws NextResponse with 401
  */
-export async function requireAuth(request: Request): Promise<string> {
+export const requireAuth = async (request: Request): Promise<string> => {
   const userId = await getUserId(request);
 
   if (!userId) {
@@ -54,10 +54,10 @@ export async function requireAuth(request: Request): Promise<string> {
  * Guard middleware - ensures user is authenticated and has email
  * @returns { userId, email } or throws NextResponse with 401
  */
-export async function requireAuthWithEmail(request: Request): Promise<{
+export const requireAuthWithEmail = async (request: Request): Promise<{
   userId: string;
   email: string;
-}> {
+}> => {
   const session = await getSession(request);
 
   if (!session?.user?.id || !session?.user?.email) {

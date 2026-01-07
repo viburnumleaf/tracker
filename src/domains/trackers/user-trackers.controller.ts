@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const userTrackersService = new UserTrackersService();
 
-export async function getUserTrackers(userId: string) {
+export const getUserTrackers = async (userId: string) => {
   try {
     const trackerIds = await userTrackersService.getUserTrackerIds(userId);
     return NextResponse.json({ trackerIds });
@@ -20,7 +20,7 @@ export async function getUserTrackers(userId: string) {
   }
 }
 
-export async function updateTrackersOrder(userId: string, request: Request) {
+export const updateTrackersOrder = async (userId: string, request: Request) => {
   try {
     const body = await request.json();
     const validatedData = updateTrackersOrderSchema.parse(body);
@@ -58,7 +58,7 @@ export async function updateTrackersOrder(userId: string, request: Request) {
   }
 }
 
-export async function addTracker(userId: string, request: Request) {
+export const addTracker = async (userId: string, request: Request) => {
   try {
     const body = await request.json();
     const { trackerId } = body;
@@ -91,7 +91,7 @@ export async function addTracker(userId: string, request: Request) {
   }
 }
 
-export async function removeTracker(userId: string, trackerId: string) {
+export const removeTracker = async (userId: string, trackerId: string) => {
   try {
     if (!trackerId) {
       return NextResponse.json(

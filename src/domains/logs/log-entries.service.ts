@@ -15,10 +15,10 @@ export type CreateLogEntryDto = z.infer<typeof createLogEntrySchema>;
 /**
  * Оновлює схему трекера, додаючи нові enum значення з customEnumValues
  */
-function updateTrackerSchemaWithCustomEnums(
+const updateTrackerSchemaWithCustomEnums = (
   schema: JsonSchema,
   customEnumValues?: Record<string, string[]>
-): JsonSchema {
+): JsonSchema => {
   if (!customEnumValues || Object.keys(customEnumValues).length === 0) {
     return schema;
   }

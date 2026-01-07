@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const logEntriesService = new LogEntriesService();
 
-export async function getLogEntries(userId: string, trackerId: string, request?: Request) {
+export const getLogEntries = async (userId: string, trackerId: string, request?: Request) => {
   try {
     const url = request ? new URL(request.url) : null;
     const includeDeleted = url?.searchParams.get("includeDeleted") === "true";
@@ -57,7 +57,7 @@ export async function getLogEntries(userId: string, trackerId: string, request?:
   }
 }
 
-export async function createLogEntry(userId: string, trackerId: string, request: Request) {
+export const createLogEntry = async (userId: string, trackerId: string, request: Request) => {
   try {
     const body = await request.json();
     const validatedData = createLogEntrySchema.parse(body);
@@ -100,7 +100,7 @@ export async function createLogEntry(userId: string, trackerId: string, request:
   }
 }
 
-export async function deleteLogEntry(userId: string, logEntryId: string) {
+export const deleteLogEntry = async (userId: string, logEntryId: string) => {
   try {
     await logEntriesService.deleteLogEntry(userId, logEntryId);
     return NextResponse.json({ success: true });
@@ -122,7 +122,7 @@ export async function deleteLogEntry(userId: string, logEntryId: string) {
   }
 }
 
-export async function permanentlyDeleteLogEntry(userId: string, logEntryId: string) {
+export const permanentlyDeleteLogEntry = async (userId: string, logEntryId: string) => {
   try {
     await logEntriesService.permanentlyDeleteLogEntry(logEntryId);
     return NextResponse.json({ success: true });

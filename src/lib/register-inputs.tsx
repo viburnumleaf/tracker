@@ -29,7 +29,7 @@ import { EmotionSlider } from "@/components/trackers/LogEntryDialog/components/E
  *   "description": "Select your emotional state"
  * }
  */
-function registerInputTypes() {
+const registerInputTypes = () => {
   // Реєструємо слайдер
   inputRegistry.register("slider", ({ value, onChange, schema }) => {
     // Визначаємо поточне значення: використовуємо value, або default, або minimum, або 0

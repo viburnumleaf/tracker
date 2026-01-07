@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { Tracker } from "@/src/api/trackers/trackers.api";
 
-export function useFilteredTrackers(
+export const useFilteredTrackers = (
   trackers: (Tracker & { isDeleted?: boolean })[],
   searchQuery: string,
   isAdminMode: boolean
-) {
+) => {
   return useMemo(() => {
     // Filter out deleted trackers when not in admin mode
     const visibleTrackers = isAdminMode

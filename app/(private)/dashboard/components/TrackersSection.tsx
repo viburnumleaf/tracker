@@ -3,7 +3,7 @@
 import { Tracker } from "@/src/api/trackers/trackers.api";
 import { TrackersList } from "./TrackersList";
 
-interface TrackersSectionProps {
+type TrackersSectionProps = {
   trackers: (Tracker & { isDeleted?: boolean })[];
   isAdminMode: boolean;
   isLoading: boolean;
@@ -13,9 +13,10 @@ interface TrackersSectionProps {
   onEditClick: (tracker: Tracker) => void;
   onDeleteClick: (tracker: Tracker & { isDeleted?: boolean }) => void;
   isDeleting?: boolean;
+  includeDeleted?: boolean;
 }
 
-export function TrackersSection({
+export const TrackersSection = ({
   trackers,
   isAdminMode,
   isLoading,
@@ -25,7 +26,8 @@ export function TrackersSection({
   onEditClick,
   onDeleteClick,
   isDeleting,
-}: TrackersSectionProps) {
+  includeDeleted = false,
+}: TrackersSectionProps) => {
   if (isLoading) {
     return (
       <div className="text-muted-foreground text-sm">Loading trackers...</div>
@@ -60,6 +62,7 @@ export function TrackersSection({
         onEditClick={onEditClick}
         onDeleteClick={onDeleteClick}
         isDeleting={isDeleting}
+        includeDeleted={includeDeleted}
       />
     </div>
   );

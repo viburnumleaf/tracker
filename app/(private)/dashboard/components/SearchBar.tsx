@@ -9,7 +9,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search, Plus, FileText, List } from "lucide-react";
 
-interface SearchBarProps {
+type SearchBarProps = {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onAddTracker: () => void;
@@ -17,13 +17,13 @@ interface SearchBarProps {
   onViewAllLogs: () => void;
 }
 
-export function SearchBar({
+export const SearchBar = ({
   searchQuery,
   onSearchChange,
   onAddTracker,
   onViewDrafts,
   onViewAllLogs,
-}: SearchBarProps) {
+}: SearchBarProps) => {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background p-3 sm:p-4 shadow-lg">
       <div className="mx-auto max-w-4xl">

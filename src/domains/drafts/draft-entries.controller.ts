@@ -7,7 +7,7 @@ import { z } from "zod";
 
 const draftEntriesService = new DraftEntriesService();
 
-export async function getDraftEntries(userId: string) {
+export const getDraftEntries = async (userId: string) => {
   try {
     const entries = await draftEntriesService.getDraftEntries(userId);
     return NextResponse.json(entries);
@@ -20,7 +20,7 @@ export async function getDraftEntries(userId: string) {
   }
 }
 
-export async function getDraftEntry(userId: string, draftId: string) {
+export const getDraftEntry = async (userId: string, draftId: string) => {
   try {
     const entry = await draftEntriesService.getDraftEntry(userId, draftId);
     return NextResponse.json(entry);
@@ -42,7 +42,7 @@ export async function getDraftEntry(userId: string, draftId: string) {
   }
 }
 
-export async function createDraftEntry(userId: string, request: Request) {
+export const createDraftEntry = async (userId: string, request: Request) => {
   try {
     const body = await request.json();
     const validatedData = createDraftEntrySchema.parse(body);
@@ -77,11 +77,11 @@ export async function createDraftEntry(userId: string, request: Request) {
   }
 }
 
-export async function updateDraftEntry(
+export const updateDraftEntry = async (
   userId: string,
   draftId: string,
   request: Request
-) {
+) => {
   try {
     const body = await request.json();
     const validatedData = createDraftEntrySchema.parse(body);
@@ -117,7 +117,7 @@ export async function updateDraftEntry(
   }
 }
 
-export async function deleteDraftEntry(userId: string, draftId: string) {
+export const deleteDraftEntry = async (userId: string, draftId: string) => {
   try {
     await draftEntriesService.deleteDraftEntry(userId, draftId);
     return NextResponse.json({ success: true });
