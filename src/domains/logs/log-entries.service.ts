@@ -81,7 +81,9 @@ export class LogEntriesService {
   async getLogEntries(
     userId: string,
     trackerId: string,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = false,
+    limit?: number,
+    skip?: number
   ) {
     const database = await db();
 
@@ -122,12 +124,22 @@ export class LogEntriesService {
       query.deletedAt = { $exists: false };
     }
 
-    // Get entries from single logs collection
-    const entries = await database
+    // Build cursor with pagination
+    let cursor = database
       .collection("logs")
       .find(query)
-      .sort({ createdAt: -1 })
-      .toArray();
+      .sort({ createdAt: -1 });
+
+    // Apply pagination if provided
+    if (skip !== undefined && skip > 0) {
+      cursor = cursor.skip(skip);
+    }
+    if (limit !== undefined && limit > 0) {
+      cursor = cursor.limit(limit);
+    }
+
+    // Get entries from single logs collection
+    const entries = await cursor.toArray();
 
     // Mark deleted entries
     if (includeDeleted) {

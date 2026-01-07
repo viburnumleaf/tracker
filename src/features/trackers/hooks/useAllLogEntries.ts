@@ -8,6 +8,8 @@ export type AllLogEntry = LogEntry & {
   tracker?: Tracker;
 };
 
+const BATCH_SIZE = 1000; // Load entries in batches to avoid memory issues
+
 export const useAllLogEntries = (includeDeleted: boolean = false) => {
   const { isAuthenticated } = useAuth();
   const { trackers, isLoading: trackersLoading } = useTrackers(includeDeleted);
@@ -22,14 +24,41 @@ export const useAllLogEntries = (includeDeleted: boolean = false) => {
     queryFn: async () => {
       if (trackers.length === 0) return [];
 
-      // Fetch all log entries from all trackers in parallel
+      // Fetch all log entries from all trackers in parallel with pagination
       const entriesPromises = trackers.map(async (tracker) => {
         try {
-          const entries = await trackersApi.getLogEntries(tracker._id, includeDeleted);
-          return entries.map((entry) => ({
-            ...entry,
-            tracker,
-          }));
+          const allEntriesForTracker: AllLogEntry[] = [];
+          let skip = 0;
+          let hasMore = true;
+
+          // Fetch entries in batches
+          while (hasMore) {
+            const batch = await trackersApi.getLogEntries(
+              tracker._id,
+              includeDeleted,
+              BATCH_SIZE,
+              skip
+            );
+            
+            if (batch.length === 0) {
+              hasMore = false;
+            } else {
+              allEntriesForTracker.push(
+                ...batch.map((entry) => ({
+                  ...entry,
+                  tracker,
+                }))
+              );
+              skip += batch.length;
+              
+              // If we got less than BATCH_SIZE, we've reached the end
+              if (batch.length < BATCH_SIZE) {
+                hasMore = false;
+              }
+            }
+          }
+
+          return allEntriesForTracker;
         } catch (error) {
           console.error(`Error fetching entries for tracker ${tracker._id}:`, error);
           return [];

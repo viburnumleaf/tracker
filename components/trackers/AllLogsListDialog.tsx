@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   useAllLogEntries,
   useDeleteLogEntry,
@@ -170,6 +171,20 @@ export const AllLogsListDialog = ({
     deleteLogEntryMutation.isPending ||
     permanentlyDeleteLogEntryMutation.isPending;
 
+  // Virtualization setup
+  const parentRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: filteredAndSortedEntries.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 120, // Estimated height of each entry card
+    overscan: 5, // Render 5 extra items outside viewport
+  });
+
+  // Update virtualizer when entries change
+  useEffect(() => {
+    virtualizer.measure();
+  }, [filteredAndSortedEntries.length, virtualizer]);
+
   return (
     <>
       <DialogLayout
@@ -192,114 +207,145 @@ export const AllLogsListDialog = ({
           )
         }
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              {sortOptions.map((option) => (
-                <Button
-                  key={option}
-                  variant={sortBy === option ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSortBy(option)}
-                  className="text-xs"
-                >
-                  {sortLabels[option]}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={cycleSort}
-              className="shrink-0"
-              aria-label="Cycle sort options"
-            >
-              <ArrowUpDown className="size-4" />
-            </Button>
-          </div>
-
-          {/* Tracker filter buttons */}
-          {uniqueTrackers.length > 0 && (
-            <div className="space-y-2 border-t pt-3">
-              <div className="pb-2">
-                <Button
-                  variant={isAllSelected ? "default" : "outline"}
-                  size="sm"
-                  onClick={toggleAllTrackers}
-                  className="text-xs"
-                >
-                  {isAllSelected ? "Deselect All" : "Select All Trackers"}
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {uniqueTrackers.map((tracker) => (
+        <div className="flex flex-col h-full min-h-0">
+          <div className="space-y-4 shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {sortOptions.map((option) => (
                   <Button
-                    key={tracker.id}
-                    variant={selectedTrackers.has(tracker.id) ? "default" : "outline"}
+                    key={option}
+                    variant={sortBy === option ? "default" : "outline"}
                     size="sm"
-                    onClick={() => toggleTracker(tracker.id)}
+                    onClick={() => setSortBy(option)}
                     className="text-xs"
                   >
-                    {tracker.name}
+                    {sortLabels[option]}
                   </Button>
                 ))}
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={cycleSort}
+                className="shrink-0"
+                aria-label="Cycle sort options"
+              >
+                <ArrowUpDown className="size-4" />
+              </Button>
             </div>
-          )}
+
+            {/* Tracker filter buttons */}
+            {uniqueTrackers.length > 0 && (
+              <div className="space-y-2 border-t py-3">
+                <div className="">
+                  <Button
+                    variant={isAllSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={toggleAllTrackers}
+                    className="text-xs"
+                  >
+                    {isAllSelected ? "Deselect All" : "Select All Trackers"}
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {uniqueTrackers.map((tracker) => (
+                    <Button
+                      key={tracker.id}
+                      variant={selectedTrackers.has(tracker.id) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleTracker(tracker.id)}
+                      className="text-xs"
+                    >
+                      {tracker.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
 
           {isLoading ? (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-sm py-4">
               Loading entries...
             </div>
           ) : filteredAndSortedEntries.length === 0 ? (
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground text-sm py-4">
               {selectedTrackers.size === 0
                 ? "No trackers selected. Select at least one tracker to view entries."
                 : "No log entries found for the selected trackers."}
             </div>
           ) : (
-            filteredAndSortedEntries.map((entry) => {
-              const isDeleted = entry.isDeleted || false;
-              const trackerName = entry.tracker?.name.replace(/_/g, " ") || "Unknown";
-              return (
-                <Card
-                  key={`${entry.trackerId}-${entry._id}`}
-                  className={`p-4 ${
-                    isDeleted
-                      ? "opacity-50 border-dashed border-2 border-destructive"
-                      : ""
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="text-sm font-medium text-primary">
-                          {trackerName}
+            <div
+              ref={parentRef}
+              className="flex-1 overflow-auto min-h-[400px]"
+              style={{
+                contain: "strict",
+              }}
+            >
+              <div
+                style={{
+                  height: `${virtualizer.getTotalSize()}px`,
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualItem) => {
+                    const entry = filteredAndSortedEntries[virtualItem.index];
+                    const isDeleted = entry.isDeleted || false;
+                    const trackerName = entry.tracker?.name.replace(/_/g, " ") || "Unknown";
+                    return (
+                      <div
+                        key={virtualItem.key}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualItem.size}px`,
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                        className="p-1"
+                      >
+                      <Card
+                        className={`p-4 h-full ${
+                          isDeleted
+                            ? "opacity-50 border-dashed border-2 border-destructive"
+                            : ""
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="text-sm font-medium text-primary">
+                                {trackerName}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(entry.createdAt).toLocaleString()}
+                              </div>
+                              {isDeleted && (
+                                <span className="text-xs text-destructive">
+                                  (Deleted)
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm">{formatEntryData(entry.data)}</div>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteClick(entry)}
+                            disabled={isLoadingDelete}
+                            className="shrink-0"
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </div>
-                        {isDeleted && (
-                          <span className="text-xs text-destructive">
-                            (Deleted)
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm">{formatEntryData(entry.data)}</div>
+                      </Card>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(entry)}
-                      disabled={isLoadingDelete}
-                      className="shrink-0"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  </div>
-                </Card>
-              );
-            })
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
       </DialogLayout>

@@ -99,9 +99,20 @@ export const trackersApi = {
   },
 
   // Get log entries for a tracker
-  getLogEntries: async (trackerId: string, includeDeleted: boolean = false): Promise<(LogEntry & { isDeleted?: boolean })[]> => {
+  getLogEntries: async (
+    trackerId: string,
+    includeDeleted: boolean = false,
+    limit?: number,
+    skip?: number
+  ): Promise<(LogEntry & { isDeleted?: boolean })[]> => {
+    const params = new URLSearchParams();
+    if (includeDeleted) params.append("includeDeleted", "true");
+    if (limit !== undefined) params.append("limit", limit.toString());
+    if (skip !== undefined) params.append("skip", skip.toString());
+    
+    const queryString = params.toString();
     const response: AxiosResponse<(LogEntry & { isDeleted?: boolean })[]> = await apiClient.get(
-      `/api/logs/${trackerId}/entries${includeDeleted ? "?includeDeleted=true" : ""}`
+      `/api/logs/${trackerId}/entries${queryString ? `?${queryString}` : ""}`
     );
     return response.data;
   },

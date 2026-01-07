@@ -53,7 +53,7 @@ export const DialogLayout = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={`${maxWidthClasses[maxWidth]} h-dvh sm:h-auto sm:max-h-[90vh] flex flex-col p-0 gap-0`}
+        className={`${maxWidthClasses[maxWidth]} h-dvh sm:h-[90vh] sm:max-h-[90vh] flex flex-col p-0 gap-0`}
         showCloseButton={false}
       >
         <DialogHeader className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 shrink-0">
@@ -80,7 +80,7 @@ export const DialogLayout = ({
             <span className="sr-only">Close</span>
           </Button>
         </DialogClose>
-        <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">{children}</div>
+        <div className="flex-1 overflow-hidden px-4 py-4 min-h-0 flex flex-col">{children}</div>
         {footer && (
           <DialogFooter className="bottom-0 z-10 bg-background border-t border-border px-4 py-3 shrink-0 mt-0 relative">
             {footer}

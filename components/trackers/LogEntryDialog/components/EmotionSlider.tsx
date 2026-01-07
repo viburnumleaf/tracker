@@ -57,9 +57,9 @@ const EmotionIcon = ({ value }: { value: string }) => {
 export const EmotionSlider = ({ value, onChange, schema }: EmotionSliderProps) => {
   const enumValues = schema.enum || [];
 
-  // Сортуємо enum значення за числовим значенням (від найбільшого до найменшого)
+  // Сортуємо enum значення за числовим значенням (від найменшого до найбільшого, щоб best було справа)
   const sortedEnumValues = [...enumValues].sort((a, b) => {
-    return extractNumberFromEnum(b) - extractNumberFromEnum(a);
+    return extractNumberFromEnum(a) - extractNumberFromEnum(b);
   });
 
   // Визначаємо поточне значення
@@ -102,7 +102,7 @@ export const EmotionSlider = ({ value, onChange, schema }: EmotionSliderProps) =
 
         {/* Іконки під слайдером */}
         <div className="flex justify-between items-center -mt-6 px-1">
-          {[...sortedEnumValues].reverse().map((enumValue, index) => {
+          {sortedEnumValues.map((enumValue, index) => {
             const numValue = extractNumberFromEnum(enumValue).toString();
             const isActive = index === sliderValue;
 

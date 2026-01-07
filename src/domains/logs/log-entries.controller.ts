@@ -9,10 +9,35 @@ const logEntriesService = new LogEntriesService();
 
 export async function getLogEntries(userId: string, trackerId: string, request?: Request) {
   try {
-    const includeDeleted = request
-      ? new URL(request.url).searchParams.get("includeDeleted") === "true"
-      : false;
-    const entries = await logEntriesService.getLogEntries(userId, trackerId, includeDeleted);
+    const url = request ? new URL(request.url) : null;
+    const includeDeleted = url?.searchParams.get("includeDeleted") === "true";
+    const limitParam = url?.searchParams.get("limit");
+    const skipParam = url?.searchParams.get("skip");
+    
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+    const skip = skipParam ? parseInt(skipParam, 10) : undefined;
+
+    // Validate pagination parameters
+    if (limit !== undefined && (isNaN(limit) || limit < 0 || limit > 10000)) {
+      return NextResponse.json(
+        { error: "Invalid limit parameter. Must be between 0 and 10000." },
+        { status: 400 }
+      );
+    }
+    if (skip !== undefined && (isNaN(skip) || skip < 0)) {
+      return NextResponse.json(
+        { error: "Invalid skip parameter. Must be >= 0." },
+        { status: 400 }
+      );
+    }
+
+    const entries = await logEntriesService.getLogEntries(
+      userId,
+      trackerId,
+      includeDeleted,
+      limit,
+      skip
+    );
     return NextResponse.json(entries);
   } catch (error) {
     if (error instanceof Error) {
