@@ -12,6 +12,7 @@ const MOBILE_USER_AGENTS = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|O
  * Detects if the current device is mobile
  */
 const isMobileDevice = (): boolean => {
+  
   if (typeof window === "undefined") return false;
   
   return (
@@ -76,8 +77,17 @@ export const useAdminMode = (): boolean => {
     (e: KeyboardEvent) => {
       if (isMobile) return;
       
-      if (e.getModifierState?.("CapsLock")) {
-        setIsAdminMode(true);
+      // Check if CapsLock key was pressed
+      if (e.key === "CapsLock" || e.code === "CapsLock") {
+        // For CapsLock, state changes after keydown, so check with a small delay
+        setTimeout(() => {
+          // Get fresh state after toggle
+          const freshState = e.getModifierState?.("CapsLock") ?? false;
+          setIsAdminMode(freshState);
+        }, 10);
+      } else {
+        // For other keys, check current CapsLock state
+        setIsAdminMode(e.getModifierState?.("CapsLock") ?? false);
       }
     },
     [isMobile]
@@ -87,10 +97,30 @@ export const useAdminMode = (): boolean => {
     (e: KeyboardEvent) => {
       if (isMobile) return;
       
+      // Always check CapsLock state on keyup
       setIsAdminMode(e.getModifierState?.("CapsLock") ?? false);
     },
     [isMobile]
   );
+  
+  // Additional check: monitor any keyboard activity to catch CapsLock state changes
+  useEffect(() => {
+    if (isMobile) return;
+    
+    const handleAnyKey = (e: KeyboardEvent) => {
+      // Check CapsLock state on any key press
+      const capsLockState = e.getModifierState?.("CapsLock") ?? false;
+      setIsAdminMode(capsLockState);
+    };
+    
+    window.addEventListener("keydown", handleAnyKey);
+    window.addEventListener("keyup", handleAnyKey);
+    
+    return () => {
+      window.removeEventListener("keydown", handleAnyKey);
+      window.removeEventListener("keyup", handleAnyKey);
+    };
+  }, [isMobile]);
 
   // Mobile: Long press with two fingers handlers
   const handleTouchStart = useCallback(
