@@ -9,6 +9,8 @@ export const useCreateLogEntry = () => {
     onSuccess: (_, variables) => {
       // Інвалідуємо записи логів
       queryClient.invalidateQueries({ queryKey: ["trackers", variables.trackerId, "entries"] });
+      // Інвалідуємо останній лог для оновлення таймера на карточці
+      queryClient.invalidateQueries({ queryKey: ["trackers", variables.trackerId, "last-entry"] });
       // Інвалідуємо трекери (щоб оновити схеми з новими enum значеннями)
       queryClient.invalidateQueries({ queryKey: ["trackers"] });
     },

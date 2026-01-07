@@ -26,6 +26,8 @@ import { Tracker } from "@/src/api/trackers/trackers.api";
 import { cn } from "@/lib/utils";
 import { trackersApi } from "@/src/api/trackers/trackers.api";
 import { useQueryClient } from "@tanstack/react-query";
+import { useLastLogEntries } from "@/src/features/trackers/hooks/useLastLogEntries";
+import { TimeAgo } from "./TimeAgo";
 
 type TrackersListProps = {
   trackers: (Tracker & { isDeleted?: boolean })[];
@@ -56,7 +58,8 @@ const SortableTrackerItem = ({
   onEditClick,
   onDeleteClick,
   isDeleting = false,
-}: SortableTrackerItemProps) => {
+  lastLogEntry,
+}: SortableTrackerItemProps & { lastLogEntry?: { createdAt: string } | null }) => {
   const isDeleted = tracker.isDeleted || false;
   
   const {
@@ -87,9 +90,9 @@ const SortableTrackerItem = ({
       )}
       onClick={() => !isDeleted && onTrackerClick(tracker)}
     >
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 h-full">
         {/* Mobile: Title and actions in one row */}
-        <div className={cn('flex flex-col sm:flex-row items-center sm:items-start justify-between gap-1 sm:gap-2')}>
+        <div className={cn('flex flex-col sm:flex-row items-start justify-between gap-1 sm:gap-2 h-full')}>
           <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
             {!isDeleted && (
               <button
@@ -105,15 +108,15 @@ const SortableTrackerItem = ({
                 <GripVertical className="size-3 sm:size-4 text-muted-foreground" />
               </button>
             )}
-            <h3 className="font-semibold text-xs sm:text-sm md:text-base lg:text-lg capitalize flex-1 line-clamp-2 min-w-0">
-              <span className="block truncate">{tracker.name.replace(/_/g, " ")}</span>
+            <h3 className="font-semibold text-xs sm:text-sm md:text-base lg:text-lg capitalize flex-1 min-w-0">
+              <span className="block">{tracker.name.replace(/_/g, " ")}</span>
               {isDeleted && (
                 <span className="text-[10px] sm:text-xs text-destructive">(Deleted)</span>
               )}
             </h3>
           </div>
           <div 
-            className="flex gap-0.5 sm:gap-1 shrink-0" 
+            className="flex gap-0.5 sm:gap-1 shrink-0 mt-auto sm:mt-0" 
             onClick={(e) => e.stopPropagation()}
           >
             <Tooltip>
@@ -178,13 +181,35 @@ const SortableTrackerItem = ({
         
         {/* Mobile: Hide meta info, show on larger screens */}
         <div className="hidden sm:block space-y-1">
-          <p className="text-xs sm:text-sm text-muted-foreground">
+          {lastLogEntry ? (
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Last log: <TimeAgo date={lastLogEntry.createdAt} className="font-medium" />
+            </p>
+          ) : (
+            <p className="text-xs sm:text-sm text-muted-foreground italic">
+              No logs yet
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
             Created: {new Date(tracker.createdAt).toLocaleDateString()}
           </p>
           <p className="text-xs text-muted-foreground">
             {Object.keys(tracker.schema.properties || {}).length} field
             {Object.keys(tracker.schema.properties || {}).length !== 1 ? "s" : ""}
           </p>
+        </div>
+        
+        {/* Mobile: Show last log time */}
+        <div className="sm:hidden">
+          {lastLogEntry ? (
+            <p className="text-[10px] text-muted-foreground">
+              Last: <TimeAgo date={lastLogEntry.createdAt} />
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground italic">
+              No logs
+            </p>
+          )}
         </div>
       </div>
     </Card>
@@ -203,6 +228,9 @@ export const TrackersList = ({
 }: TrackersListProps) => {
   const [items, setItems] = useState(trackers);
   const queryClient = useQueryClient();
+  
+  // Get last log entries for all trackers
+  const { lastLogEntriesMap } = useLastLogEntries(items);
 
   // Update local state when trackers prop changes
   useEffect(() => {
@@ -282,18 +310,22 @@ export const TrackersList = ({
         strategy={rectSortingStrategy}
       >
         <div className="grid gap-2 sm:gap-3 md:gap-4 grid-cols-3 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((tracker) => (
-            <SortableTrackerItem
-              key={tracker._id}
-              tracker={tracker}
-              isAdminMode={isAdminMode}
-              onTrackerClick={onTrackerClick}
-              onViewLogsClick={onViewLogsClick}
-              onEditClick={onEditClick}
-              onDeleteClick={onDeleteClick}
-              isDeleting={isDeleting}
-            />
-          ))}
+          {items.map((tracker) => {
+            const lastLogEntry = lastLogEntriesMap.get(tracker._id);
+            return (
+              <SortableTrackerItem
+                key={tracker._id}
+                tracker={tracker}
+                isAdminMode={isAdminMode}
+                onTrackerClick={onTrackerClick}
+                onViewLogsClick={onViewLogsClick}
+                onEditClick={onEditClick}
+                onDeleteClick={onDeleteClick}
+                isDeleting={isDeleting}
+                lastLogEntry={lastLogEntry || undefined}
+              />
+            );
+          })}
         </div>
       </SortableContext>
     </DndContext>

@@ -11,6 +11,10 @@ export const useDeleteLogEntry = () => {
       queryClient.invalidateQueries({
         queryKey: ["trackers", variables.trackerId, "entries"],
       });
+      // Інвалідуємо останній лог, оскільки він може змінитися після видалення
+      queryClient.invalidateQueries({
+        queryKey: ["trackers", variables.trackerId, "last-entry"],
+      });
     },
   });
 };

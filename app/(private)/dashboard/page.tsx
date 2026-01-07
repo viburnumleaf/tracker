@@ -24,6 +24,7 @@ import {
   SearchBar,
   DeleteTrackerDialog,
 } from "./components";
+import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <Loader2 className="size-10 text-primary animate-spin" />
       </div>
     );
   }
